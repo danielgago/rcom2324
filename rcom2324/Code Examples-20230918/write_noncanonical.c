@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include <signal.h>
 
 // Baudrate settings are defined in <asm/termbits.h>, which is
 // included by <termios.h>
@@ -18,10 +19,26 @@
 
 #define FALSE 0
 #define TRUE 1
+#define FLAG 0x7E
+#define UA_A 0x01
+#define UA_C 0x07
+int state = 0;
 
 #define BUF_SIZE 256
 
 volatile int STOP = FALSE;
+
+int alarmEnabled = FALSE;
+int alarmCount = 0;
+
+void alarmHandler(int signal)
+{
+    alarmEnabled = FALSE;
+    alarmCount++;
+    STOP = TRUE;
+
+    printf("Alarm #%d\n", alarmCount);
+}
 
 int main(int argc, char *argv[])
 {
@@ -67,8 +84,8 @@ int main(int argc, char *argv[])
 
     // Set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 0; // Inter-character timer unused
-    newtio.c_cc[VMIN] = 5;  // Blocking read until 5 chars received
+    newtio.c_cc[VTIME] = 0.1; // Inter-character timer unused
+    newtio.c_cc[VMIN] = 0;  // Blocking read until 5 chars received
 
     // VTIME e VMIN should be changed in order to protect with a
     // timeout the reception of the following character(s)
@@ -96,21 +113,61 @@ int main(int argc, char *argv[])
     write_buf[2] = 0x03;
     write_buf[3] = 0x03^0x03;
     write_buf[4] = 0x7E;
+    
+    (void)signal(SIGALRM, alarmHandler);
 
-    int bytes = write(fd, write_buf, BUF_SIZE);
-    printf("%d bytes written\n", bytes);
+    while (alarmCount < 4){
+        if (alarmEnabled == FALSE)
+        {
+            STOP = FALSE;
+            int bytes = write(fd, write_buf, BUF_SIZE);
+            printf("%d bytes written\n", bytes);
+            alarm(3); // Set alarm to be triggered in 3s
+            alarmEnabled = TRUE;
 
-    // Wait until all bytes have been written to the serial port
-    sleep(1);
+            // Wait until all bytes have been written to the serial port
+            sleep(1);
 
-    unsigned char read_buf[BUF_SIZE + 1] = {0};
-    char flag = FALSE;
-    while (STOP == FALSE)
-    {
-        int bytes = read(fd, read_buf, 1);
-        printf("var = 0x%02X\n", read_buf[0]);
-        if(!flag && read_buf[0] == 0x7E) flag = TRUE;
-        else if (flag && read_buf[0] == 0x7E) STOP = TRUE;
+            unsigned char read_buf[BUF_SIZE + 1] = {0};
+            while (STOP == FALSE){
+                // Returns after 5 chars have been input
+                int bytes = read(fd, read_buf, 1);
+                printf("var = 0x%02X\n", read_buf[0]);
+                switch (state)
+                {
+                case 0:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else state = 0;
+                    break;
+                case 1:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else if(read_buf[0] == UA_A) state = 2;
+                    else state = 0;
+                    break;
+                case 2:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else if(read_buf[0] == UA_C) state = 3;
+                    else state = 0;
+                    break;
+                case 3:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else if(read_buf[0] == UA_A^UA_C) state = 4;
+                    else state = 0;
+                    break;
+                case 4:
+                    if(read_buf[0] == FLAG) {
+                        STOP = TRUE;
+                        printf("Success!");
+                        alarm(0);
+                        alarmCount = 4;
+                    }
+                    else state = 0;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     // Restore the old port settings
