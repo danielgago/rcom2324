@@ -18,6 +18,10 @@
 
 #define FALSE 0
 #define TRUE 1
+#define FLAG 0x7E
+#define SET_A 0x03
+#define SET_C 0x03
+int state = 0;
 
 #define BUF_SIZE 256
 
@@ -66,8 +70,8 @@ int main(int argc, char *argv[])
 
     // Set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 0; // Inter-character timer unused
-    newtio.c_cc[VMIN] = 5;  // Blocking read until 5 chars received
+    newtio.c_cc[VTIME] = 0.1; // Inter-character timer unused
+    newtio.c_cc[VMIN] = 0;  // Blocking read until 5 chars received
 
     // VTIME e VMIN should be changed in order to protect with a
     // timeout the reception of the following character(s)
@@ -95,23 +99,47 @@ int main(int argc, char *argv[])
     {
         // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-
-        printf("var = 0x%02X\n", read_buf[0]);
-        if(!flag && read_buf[0] == 0x7E) flag = TRUE;
-        else if(flag && read_buf[0] == 0x7E) STOP = TRUE;
+        switch (state)
+        {
+        case 0:
+            if(read_buf[0] == FLAG) state = 1;
+            else state = 0;
+            break;
+        case 1:
+            if(read_buf[0] == FLAG) state = 1;
+            else if(read_buf[0] == SET_A) state = 2;
+            else state = 0;
+            break;
+        case 2:
+            if(read_buf[0] == FLAG) state = 1;
+            else if(read_buf[0] == SET_C) state = 3;
+            else state = 0;
+            break;
+        case 3:
+            if(read_buf[0] == FLAG) state = 1;
+            else if(read_buf[0] == SET_A^SET_C) state = 4;
+            else state = 0;
+            break;
+        case 4:
+            if(read_buf[0] == FLAG) STOP = TRUE;
+            else state = 0;
+            break;
+        default:
+            break;
+        }
     }
 
     sleep(1);
 
     unsigned char write_buf[BUF_SIZE] = {0};
 
-    write_buf[0] = 0x7E;
+    write_buf[0] = FLAG;
     write_buf[1] = 0x01;
     write_buf[2] = 0x07;    
     write_buf[3] = write_buf[1]^write_buf[2];
-    write_buf[4] = 0x7E;
+    write_buf[4] = FLAG;
 
-    int bytes = write(fd, write_buf, BUF_SIZE);
+    int bytes = write(fd, write_buf, 5);
     
     sleep(1);
 
@@ -126,3 +154,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+
