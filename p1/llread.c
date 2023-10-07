@@ -39,7 +39,6 @@ volatile int STOP = FALSE;
 void establish_connection(int fd){
     // Loop for input
     unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
-    char flag = FALSE;
     while (STOP == FALSE)
     {
         // Returns after 5 chars have been input

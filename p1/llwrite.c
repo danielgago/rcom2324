@@ -62,7 +62,7 @@ void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned cha
     case 1:
         if (curr_byte == FLAG)
             state = 1;
-        else if (curr_byte == A_RECEIVER)
+        else if (curr_byte == A)
             state = 2;
         else
             state = 0;
@@ -70,7 +70,7 @@ void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned cha
     case 2:
         if (curr_byte == FLAG)
             state = 1;
-        else if (curr_byte == UA)
+        else if (curr_byte == C)
             state = 3;
         else
             state = 0;
@@ -78,7 +78,7 @@ void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned cha
     case 3:
         if (curr_byte == FLAG)
             state = 1;
-        else if (curr_byte == A_RECEIVER ^ UA)
+        else if (curr_byte == BCC1)
             state = 4;
         else
             state = 0;
@@ -129,7 +129,7 @@ void stablish_connection(int fd)
                 // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
                 printf("var = 0x%02X\n", read_buf[0]);
-                state_machine(read_buf[0], A_RECEIVER, SET, A_RECEIVER ^ UA, 0x00);
+                state_machine(read_buf[0], A_RECEIVER, UA, A_RECEIVER ^ UA, 0x00);
             }
         }
     }
@@ -218,52 +218,7 @@ void write_data(int fd)
                 // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
                 printf("var = 0x%02X\n", read_buf[0]);
-                switch (state)
-                {
-                case 0:
-                    if (read_buf[0] == FLAG)
-                        state = 1;
-                    else
-                        state = 0;
-                    break;
-                case 1:
-                    if (read_buf[0] == FLAG)
-                        state = 1;
-                    else if (read_buf[0] == A_RECEIVER)
-                        state = 2;
-                    else
-                        state = 0;
-                    break;
-                case 2:
-                    if (read_buf[0] == FLAG)
-                        state = 1;
-                    else if (read_buf[0] == UA)
-                        state = 3;
-                    else
-                        state = 0;
-                    break;
-                case 3:
-                    if (read_buf[0] == FLAG)
-                        state = 1;
-                    else if (read_buf[0] == A_RECEIVER ^ UA)
-                        state = 4;
-                    else
-                        state = 0;
-                    break;
-                case 4:
-                    if (read_buf[0] == FLAG)
-                    {
-                        STOP = TRUE;
-                        printf("Success!");
-                        alarm(0);
-                        alarmCount = 4;
-                    }
-                    else
-                        state = 0;
-                    break;
-                default:
-                    break;
-                }
+                state_machine(read_buf[0], A_RECEIVER, UA, A_RECEIVER ^ UA, 0x00);
             }
         }
     }
