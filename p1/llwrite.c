@@ -114,14 +114,13 @@ int main(int argc, char *argv[])
 
     printf("New termios structure set\n");
 
-    // Create string to send
+    // Establecimento ligação
     unsigned char write_buf[BUF_SIZE] = {0};
-    unsigned char fake_data[10] = {0x00, 0x7E, 0x05, 0x7D, 0x35, 0x7E, 0xFF, 0x89, 0x12, 0x7D};
-    write_buf[0] = 0x7E;
-    write_buf[1] = 0x03;
-    write_buf[2] = 0x03;
-    write_buf[3] = 0x03^0x03;
-    write_buf[4] = 0x7E;
+    write_buf[0] = FLAG;
+    write_buf[1] = A_SENDER;
+    write_buf[2] = SET;
+    write_buf[3] = A_SENDER^SET;
+    write_buf[4] = FLAG;
     
     (void)signal(SIGALRM, alarmHandler);
 
@@ -150,7 +149,7 @@ int main(int argc, char *argv[])
                     break;
                 case 1:
                     if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == A_WRITER) state = 2;
+                    else if(read_buf[0] == A_RECEIVER) state = 2;
                     else state = 0;
                     break;
                 case 2:
@@ -160,7 +159,7 @@ int main(int argc, char *argv[])
                     break;
                 case 3:
                     if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == A_WRITER^UA) state = 4;
+                    else if(read_buf[0] == A_RECEIVER^UA) state = 4;
                     else state = 0;
                     break;
                 case 4:
