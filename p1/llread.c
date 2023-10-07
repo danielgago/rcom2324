@@ -36,6 +36,49 @@ unsigned char N_local = 0x00;
 
 volatile int STOP = FALSE;
 
+void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1, unsigned char BCC2)
+{
+    switch (state)
+    {
+    case 0:
+        if (curr_byte == FLAG)
+            state = 1;
+        else
+            state = 0;
+        break;
+    case 1:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == A)
+            state = 2;
+        else
+            state = 0;
+        break;
+    case 2:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == C)
+            state = 3;
+        else
+            state = 0;
+        break;
+    case 3:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == BCC1)
+            state = 4;
+        else
+            state = 0;
+        break;
+    case 4:
+        if (curr_byte == FLAG) STOP = TRUE;
+        else state = 0;
+        break;
+    default:
+        break;
+    }
+}
+
 void establish_connection(int fd){
     // Loop for input
     unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
@@ -43,34 +86,7 @@ void establish_connection(int fd){
     {
         // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-        switch (state)
-        {
-        case 0:
-            if(read_buf[0] == FLAG) state = 1;
-            else state = 0;
-            break;
-        case 1:
-            if(read_buf[0] == FLAG) state = 1;
-            else if(read_buf[0] == A_SENDER) state = 2;
-            else state = 0;
-            break;
-        case 2:
-            if(read_buf[0] == FLAG) state = 1;
-            else if(read_buf[0] == SET) state = 3;
-            else state = 0;
-            break;
-        case 3:
-            if(read_buf[0] == FLAG) state = 1;
-            else if(read_buf[0] == A_SENDER^SET) state = 4;
-            else state = 0;
-            break;
-        case 4:
-            if(read_buf[0] == FLAG) STOP = TRUE;
-            else state = 0;
-            break;
-        default:
-            break;
-        }
+        state_machine(read_buf[0], A_SENDER, SET, A_SENDER^SET, 0X00);
     }
 
     sleep(1);
