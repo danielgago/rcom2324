@@ -71,25 +71,22 @@ void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned cha
             state = 0;
         break;
     case 4:
-        if (curr_byte == FLAG)
-            STOP = TRUE;
-        else
-            state = 0;
+        if (curr_byte == FLAG) STOP = TRUE;
+        else state = 0;
         break;
     default:
         break;
     }
 }
 
-void establish_connection(int fd)
-{
+void establish_connection(int fd){
     // Loop for input
     unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
     while (STOP == FALSE)
     {
         // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-        state_machine(read_buf[0], A_SENDER, SET, A_SENDER ^ SET, 0X00);
+        state_machine(read_buf[0], A_SENDER, SET, A_SENDER^SET, 0X00);
     }
 
     sleep(1);
@@ -98,17 +95,17 @@ void establish_connection(int fd)
 
     write_buf[0] = FLAG;
     write_buf[1] = A_RECEIVER;
-    write_buf[2] = UA;
-    write_buf[3] = A_RECEIVER ^ UA;
+    write_buf[2] = UA;    
+    write_buf[3] = A_RECEIVER^UA;
     write_buf[4] = FLAG;
 
     int bytes = write(fd, write_buf, 5);
-
+    
     sleep(1);
 }
 
-void read_data(int fd)
-{
+void read_data(int fd){
+
 }
 
 int main(int argc, char *argv[])
@@ -155,7 +152,7 @@ int main(int argc, char *argv[])
     // Set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0.1; // Inter-character timer unused
-    newtio.c_cc[VMIN] = 0;    // Blocking read until 5 chars received
+    newtio.c_cc[VMIN] = 0;  // Blocking read until 5 chars received
 
     // VTIME e VMIN should be changed in order to protect with a
     // timeout the reception of the following character(s)
@@ -191,3 +188,4 @@ int main(int argc, char *argv[])
 
     return 0;
 }
+

@@ -49,7 +49,7 @@ void alarmHandler(int signal)
     printf("Alarm #%d\n", alarmCount);
 }
 
-void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1, unsigned char BCC2)
+void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
 {
     switch (state)
     {
@@ -90,6 +90,10 @@ void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned cha
             printf("Success!");
             alarm(0);
             alarmCount = 4;
+            if(C == RR0)
+                N_local = 0x40;
+            else if (C == RR1)
+                N_local = 0x00;
         }
         else
             state = 0;
@@ -129,7 +133,7 @@ void stablish_connection(int fd)
                 // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
                 printf("var = 0x%02X\n", read_buf[0]);
-                state_machine(read_buf[0], A_RECEIVER, UA, A_RECEIVER ^ UA, 0x00);
+                state_machine(read_buf[0], A_RECEIVER, UA, A_RECEIVER ^ UA);
             }
         }
     }
@@ -218,7 +222,10 @@ void write_data(int fd)
                 // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
                 printf("var = 0x%02X\n", read_buf[0]);
-                state_machine(read_buf[0], A_RECEIVER, UA, A_RECEIVER ^ UA, 0x00);
+                if (N_local == 0x00)
+                    state_machine(read_buf[0], A_RECEIVER, RR1, A_RECEIVER ^ RR1);
+                else if (N_local == 0x40)
+                    state_machine(read_buf[0], A_RECEIVER, RR0, A_RECEIVER ^ RR0);
             }
         }
     }
