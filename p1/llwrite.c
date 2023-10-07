@@ -29,6 +29,8 @@
 #define REJ0 0x01
 #define REJ1 0x81
 #define DISC 0x0B
+#define I0 0x00
+#define I1 0x40
 
 int state = 0;
 unsigned char N_local = 0x00;
@@ -91,9 +93,9 @@ void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned cha
             alarm(0);
             alarmCount = 4;
             if(C == RR0)
-                N_local = 0x40;
+                N_local = I1;
             else if (C == RR1)
-                N_local = 0x00;
+                N_local = I0;
         }
         else
             state = 0;
@@ -145,11 +147,11 @@ void write_data(int fd)
     unsigned char write_buf[BUF_SIZE] = {0};
     write_buf[0] = FLAG;
     write_buf[1] = A_SENDER;
-    if (N_local == 0x00)
-        write_buf[2] = 0x00;
+    if (N_local == I0)
+        write_buf[2] = I0;
     else
-        write_buf[2] = 0x40;
-    write_buf[3] = write_buf[1] ^ write_buf[2]; // BCC1
+        write_buf[2] = I1;
+    write_buf[3] = A_SENDER ^ write_buf[2]; // BCC1
 
     // BCC2 = P1^P2^...^Pn
     unsigned char bcc2 = fake_data[0];

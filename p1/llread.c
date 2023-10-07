@@ -28,6 +28,8 @@
 #define REJ0 0x01
 #define REJ1 0x81
 #define DISC 0x0B
+#define I0 0x00
+#define I1 0x40
 
 int state = 0;
 unsigned char N_local = 0x00;
@@ -36,7 +38,50 @@ unsigned char N_local = 0x00;
 
 volatile int STOP = FALSE;
 
-void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1, unsigned char BCC2)
+void state_machine_control(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
+{
+    switch (state)
+    {
+    case 0:
+        if (curr_byte == FLAG)
+            state = 1;
+        else
+            state = 0;
+        break;
+    case 1:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == A)
+            state = 2;
+        else
+            state = 0;
+        break;
+    case 2:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == C)
+            state = 3;
+        else
+            state = 0;
+        break;
+    case 3:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == BCC1)
+            state = 4;
+        else
+            state = 0;
+        break;
+    case 4:
+        if (curr_byte == FLAG) STOP = TRUE;
+        else state = 0;
+        break;
+    default:
+        break;
+    }
+}
+
+void state_machine_info(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
 {
     switch (state)
     {
@@ -86,7 +131,7 @@ void establish_connection(int fd){
     {
         // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-        state_machine(read_buf[0], A_SENDER, SET, A_SENDER^SET, 0X00);
+        state_machine_control(read_buf[0], A_SENDER, SET, A_SENDER^SET);
     }
 
     sleep(1);
@@ -105,7 +150,46 @@ void establish_connection(int fd){
 }
 
 void read_data(int fd){
+    unsigned char debuffer[BUF_SIZE] = {0};
+    int pos = 0;
+    // Loop for input
+    unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
+    while (TRUE)
+    {
+        // Returns after 5 chars have been input
+        int bytes = read(fd, read_buf, 1);
+        if(bytes == 0) break;
+        if(read_buf[0] == 0x7D){
+            bytes = read(fd, read_buf, 1);
+            if(read_buf[0] == 0x5D){
+                debuffer[pos] = 0x7D;
+                pos++;
+            }
+            else if(read_buf[0] == 0x5E){
+                debuffer[pos] = 0x7E;
+                pos++;
+            }
+        }
+        else{
+            debuffer[pos] = read_buf[0];
+            pos++;
+        }
+    }
 
+
+    sleep(1);
+
+    unsigned char write_buf[BUF_SIZE] = {0};
+
+    write_buf[0] = FLAG;
+    write_buf[1] = A_RECEIVER;
+    write_buf[2] = UA;    
+    write_buf[3] = A_RECEIVER^UA;
+    write_buf[4] = FLAG;
+
+    int bytes = write(fd, write_buf, 5);
+    
+    sleep(1);
 }
 
 int main(int argc, char *argv[])
