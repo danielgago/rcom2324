@@ -30,6 +30,7 @@
 #define DISC 0x0B
 
 int state = 0;
+unsigned char N_local = 0x00;
 
 #define BUF_SIZE 512
 

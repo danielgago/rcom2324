@@ -31,6 +31,7 @@
 #define DISC 0x0B
 
 int state = 0;
+unsigned char N_local = 0x00;
 
 #define BUF_SIZE 512
 
@@ -48,17 +49,69 @@ void alarmHandler(int signal)
     printf("Alarm #%d\n", alarmCount);
 }
 
-void stablish_connection(int fd){
+void state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1, unsigned char BCC2)
+{
+    switch (state)
+    {
+    case 0:
+        if (curr_byte == FLAG)
+            state = 1;
+        else
+            state = 0;
+        break;
+    case 1:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == A_RECEIVER)
+            state = 2;
+        else
+            state = 0;
+        break;
+    case 2:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == UA)
+            state = 3;
+        else
+            state = 0;
+        break;
+    case 3:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == A_RECEIVER ^ UA)
+            state = 4;
+        else
+            state = 0;
+        break;
+    case 4:
+        if (curr_byte == FLAG)
+        {
+            STOP = TRUE;
+            printf("Success!");
+            alarm(0);
+            alarmCount = 4;
+        }
+        else
+            state = 0;
+        break;
+    default:
+        break;
+    }
+}
+
+void stablish_connection(int fd)
+{
     unsigned char write_buf[BUF_SIZE] = {0};
     write_buf[0] = FLAG;
     write_buf[1] = A_SENDER;
     write_buf[2] = SET;
-    write_buf[3] = A_SENDER^SET;
+    write_buf[3] = A_SENDER ^ SET;
     write_buf[4] = FLAG;
-    
+
     (void)signal(SIGALRM, alarmHandler);
 
-    while (alarmCount < 4){
+    while (alarmCount < 4)
+    {
         if (alarmEnabled == FALSE)
         {
             STOP = FALSE;
@@ -71,39 +124,142 @@ void stablish_connection(int fd){
             sleep(1);
 
             unsigned char read_buf[BUF_SIZE + 1] = {0};
-            while (STOP == FALSE){
+            while (STOP == FALSE)
+            {
+                // Returns after 5 chars have been input
+                int bytes = read(fd, read_buf, 1);
+                printf("var = 0x%02X\n", read_buf[0]);
+                state_machine(read_buf[0], A_RECEIVER, SET, A_RECEIVER ^ UA, 0x00);
+            }
+        }
+    }
+}
+
+void write_data(int fd)
+{
+    unsigned char fake_data[10] = {0x00, 0x7E, 0x05, 0x7D, 0x11, 0xFF, 0x7E, 0x7D, 0x7E, 0xFF};
+    unsigned char write_buf[BUF_SIZE] = {0};
+    write_buf[0] = FLAG;
+    write_buf[1] = A_SENDER;
+    if (N_local == 0x00)
+        write_buf[2] = 0x00;
+    else
+        write_buf[2] = 0x40;
+    write_buf[3] = write_buf[1] ^ write_buf[2]; // BCC1
+
+    // BCC2 = P1^P2^...^Pn
+    unsigned char bcc2 = fake_data[0];
+    for (int k = 1; k < 10; k++)
+    {
+        bcc2 = bcc2 ^ fake_data[k];
+    }
+
+    // Stuffing
+    int j = 4;
+    int i = 0;
+    while (i < 10)
+    {
+        if (fake_data[i] == FLAG)
+        {
+            write_buf[j] = 0x7D;
+            write_buf[j + 1] = 0x5E;
+            j += 2;
+        }
+        else if (fake_data[i] == 0x7D)
+        {
+            write_buf[j] = 0x7D;
+            write_buf[j + 1] = 0x5D;
+            j += 2;
+        }
+        else
+        {
+            write_buf[j] = fake_data[i];
+            j++;
+        }
+        i++;
+    }
+    if (bcc2 == FLAG)
+    {
+        write_buf[j] = 0x7D;
+        write_buf[j + 1] = 0x5E;
+        j += 2;
+    }
+    else if (bcc2 == 0x7D)
+    {
+        write_buf[j] = 0x7D;
+        write_buf[j + 1] = 0x5D;
+        j += 2;
+    }
+    else
+    {
+        write_buf[j] = bcc2;
+        j++;
+    }
+    write_buf[j] = FLAG;
+
+    (void)signal(SIGALRM, alarmHandler);
+
+    while (alarmCount < 4)
+    {
+        if (alarmEnabled == FALSE)
+        {
+            STOP = FALSE;
+            int bytes = write(fd, write_buf, BUF_SIZE);
+            printf("%d bytes written\n", bytes);
+            alarm(3); // Set alarm to be triggered in 3s
+            alarmEnabled = TRUE;
+
+            // Wait until all bytes have been written to the serial port
+            sleep(1);
+
+            unsigned char read_buf[BUF_SIZE + 1] = {0};
+            while (STOP == FALSE)
+            {
                 // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
                 printf("var = 0x%02X\n", read_buf[0]);
                 switch (state)
                 {
                 case 0:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else state = 0;
+                    if (read_buf[0] == FLAG)
+                        state = 1;
+                    else
+                        state = 0;
                     break;
                 case 1:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == A_RECEIVER) state = 2;
-                    else state = 0;
+                    if (read_buf[0] == FLAG)
+                        state = 1;
+                    else if (read_buf[0] == A_RECEIVER)
+                        state = 2;
+                    else
+                        state = 0;
                     break;
                 case 2:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == UA) state = 3;
-                    else state = 0;
+                    if (read_buf[0] == FLAG)
+                        state = 1;
+                    else if (read_buf[0] == UA)
+                        state = 3;
+                    else
+                        state = 0;
                     break;
                 case 3:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == A_RECEIVER^UA) state = 4;
-                    else state = 0;
+                    if (read_buf[0] == FLAG)
+                        state = 1;
+                    else if (read_buf[0] == A_RECEIVER ^ UA)
+                        state = 4;
+                    else
+                        state = 0;
                     break;
                 case 4:
-                    if(read_buf[0] == FLAG) {
+                    if (read_buf[0] == FLAG)
+                    {
                         STOP = TRUE;
                         printf("Success!");
                         alarm(0);
                         alarmCount = 4;
                     }
-                    else state = 0;
+                    else
+                        state = 0;
                     break;
                 default:
                     break;
@@ -112,11 +268,6 @@ void stablish_connection(int fd){
         }
     }
 }
-
-void write_data(int fd){
-    
-}
-
 
 int main(int argc, char *argv[])
 {
@@ -163,7 +314,7 @@ int main(int argc, char *argv[])
     // Set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
     newtio.c_cc[VTIME] = 0.1; // Inter-character timer unused
-    newtio.c_cc[VMIN] = 0;  // Blocking read until 5 chars received
+    newtio.c_cc[VMIN] = 0;    // Blocking read until 5 chars received
 
     // VTIME e VMIN should be changed in order to protect with a
     // timeout the reception of the following character(s)
@@ -186,7 +337,7 @@ int main(int argc, char *argv[])
 
     stablish_connection(fd);
 
-    write_data(fd);
+    //write_data(fd);
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
