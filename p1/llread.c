@@ -150,6 +150,7 @@ void establish_connection(int fd){
 }
 
 void read_data(int fd){
+    unsigned char response;
     unsigned char debuffer[BUF_SIZE] = {0};
     int pos = 0;
     // Loop for input
@@ -176,6 +177,16 @@ void read_data(int fd){
         }
     }
 
+    if (pos<8){ //if the message is too small
+        if(N_local == I0)
+            response = REJ0;
+        else if (N_local == I1)
+            response = REJ1;
+    }
+    else{
+
+    }
+
 
     sleep(1);
 
@@ -183,8 +194,8 @@ void read_data(int fd){
 
     write_buf[0] = FLAG;
     write_buf[1] = A_RECEIVER;
-    write_buf[2] = UA;    
-    write_buf[3] = A_RECEIVER^UA;
+    write_buf[2] = response;    
+    write_buf[3] = A_RECEIVER^response;
     write_buf[4] = FLAG;
 
     int bytes = write(fd, write_buf, 5);
