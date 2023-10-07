@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
 
     stablish_connection(fd);
 
-    // write_data(fd);
+    write_data(fd);
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)

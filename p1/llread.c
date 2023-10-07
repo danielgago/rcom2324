@@ -151,7 +151,7 @@ void establish_connection(int fd){
 
 void read_data(int fd){
     unsigned char response;
-    unsigned char destuffer[BUF_SIZE] = {0};
+    unsigned char trama[BUF_SIZE] = {0};
     int pos = 0;
     unsigned char read_buf[BUF_SIZE + 1] = {0};
     // Destuffing
@@ -163,18 +163,19 @@ void read_data(int fd){
         if(read_buf[0] == 0x7D){
             bytes = read(fd, read_buf, 1);
             if(read_buf[0] == 0x5D){
-                destuffer[pos] = 0x7D;
+                trama[pos] = 0x7D;
                 pos++;
             }
             else if(read_buf[0] == 0x5E){
-                destuffer[pos] = 0x7E;
+                trama[pos] = 0x7E;
                 pos++;
             }
         }
         else{
-            destuffer[pos] = read_buf[0];
+            trama[pos] = read_buf[0];
             pos++;
         }
+
     }
 
     if (pos<8){ //if the message is too small
@@ -184,7 +185,35 @@ void read_data(int fd){
             response = REJ1;
     }
     else{
-
+        unsigned char BCC2 = trama[4];
+        unsigned char BCC1 = trama[1]^trama[2];
+        for (int k = 5; k < pos-2; k++){
+            BCC2 = BCC2 ^ trama[k];
+        }
+        if ((BCC2 != trama[pos-2]) || (BCC1 != trama[3]) || trama[0] != FLAG || trama[pos-1] != FLAG || trama[1] != A_SENDER){ //if the message is corrupted
+            if(N_local == I0)
+                response = REJ0;
+            else if (N_local == I1)
+                response = REJ1;
+        }
+        else{
+            if(N_local != trama[2]){ //if the message is a duplicate
+                if(N_local == I0)
+                    response = RR0;
+                else if (N_local == I1)
+                    response = RR1;
+            }
+            else{
+                if(N_local == I0){
+                    response = RR1;
+                    N_local = I1;
+                }
+                else if (N_local == I1){
+                    response = RR0;
+                    N_local = I0;
+                }
+            }
+        }
     }
 
 
