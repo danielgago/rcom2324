@@ -151,10 +151,10 @@ void establish_connection(int fd){
 
 void read_data(int fd){
     unsigned char response;
-    unsigned char debuffer[BUF_SIZE] = {0};
+    unsigned char destuffer[BUF_SIZE] = {0};
     int pos = 0;
-    // Loop for input
-    unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
+    unsigned char read_buf[BUF_SIZE + 1] = {0};
+    // Destuffing
     while (TRUE)
     {
         // Returns after 5 chars have been input
@@ -163,16 +163,16 @@ void read_data(int fd){
         if(read_buf[0] == 0x7D){
             bytes = read(fd, read_buf, 1);
             if(read_buf[0] == 0x5D){
-                debuffer[pos] = 0x7D;
+                destuffer[pos] = 0x7D;
                 pos++;
             }
             else if(read_buf[0] == 0x5E){
-                debuffer[pos] = 0x7E;
+                destuffer[pos] = 0x7E;
                 pos++;
             }
         }
         else{
-            debuffer[pos] = read_buf[0];
+            destuffer[pos] = read_buf[0];
             pos++;
         }
     }
