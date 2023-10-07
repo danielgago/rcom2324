@@ -35,6 +35,63 @@ int state = 0;
 
 volatile int STOP = FALSE;
 
+void establish_connection(int fd){
+    // Loop for input
+    unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
+    char flag = FALSE;
+    while (STOP == FALSE)
+    {
+        // Returns after 5 chars have been input
+        int bytes = read(fd, read_buf, 1);
+        switch (state)
+        {
+        case 0:
+            if(read_buf[0] == FLAG) state = 1;
+            else state = 0;
+            break;
+        case 1:
+            if(read_buf[0] == FLAG) state = 1;
+            else if(read_buf[0] == A_SENDER) state = 2;
+            else state = 0;
+            break;
+        case 2:
+            if(read_buf[0] == FLAG) state = 1;
+            else if(read_buf[0] == SET) state = 3;
+            else state = 0;
+            break;
+        case 3:
+            if(read_buf[0] == FLAG) state = 1;
+            else if(read_buf[0] == A_SENDER^SET) state = 4;
+            else state = 0;
+            break;
+        case 4:
+            if(read_buf[0] == FLAG) STOP = TRUE;
+            else state = 0;
+            break;
+        default:
+            break;
+        }
+    }
+
+    sleep(1);
+
+    unsigned char write_buf[BUF_SIZE] = {0};
+
+    write_buf[0] = FLAG;
+    write_buf[1] = A_RECEIVER;
+    write_buf[2] = UA;    
+    write_buf[3] = A_RECEIVER^UA;
+    write_buf[4] = FLAG;
+
+    int bytes = write(fd, write_buf, 5);
+    
+    sleep(1);
+}
+
+void read_data(int fd){
+
+}
+
 int main(int argc, char *argv[])
 {
     // Program usage: Uses either COM1 or COM2
@@ -100,56 +157,9 @@ int main(int argc, char *argv[])
 
     printf("New termios structure set\n");
 
-    // Loop for input
-    unsigned char read_buf[BUF_SIZE + 1] = {0}; // +1: Save space for the final '\0' char
-    char flag = FALSE;
-    while (STOP == FALSE)
-    {
-        // Returns after 5 chars have been input
-        int bytes = read(fd, read_buf, 1);
-        switch (state)
-        {
-        case 0:
-            if(read_buf[0] == FLAG) state = 1;
-            else state = 0;
-            break;
-        case 1:
-            if(read_buf[0] == FLAG) state = 1;
-            else if(read_buf[0] == A_SENDER) state = 2;
-            else state = 0;
-            break;
-        case 2:
-            if(read_buf[0] == FLAG) state = 1;
-            else if(read_buf[0] == SET) state = 3;
-            else state = 0;
-            break;
-        case 3:
-            if(read_buf[0] == FLAG) state = 1;
-            else if(read_buf[0] == A_SENDER^SET) state = 4;
-            else state = 0;
-            break;
-        case 4:
-            if(read_buf[0] == FLAG) STOP = TRUE;
-            else state = 0;
-            break;
-        default:
-            break;
-        }
-    }
+    establish_connection(fd);
 
-    sleep(1);
-
-    unsigned char write_buf[BUF_SIZE] = {0};
-
-    write_buf[0] = FLAG;
-    write_buf[1] = A_RECEIVER;
-    write_buf[2] = 0x07;    
-    write_buf[3] = write_buf[1]^write_buf[2];
-    write_buf[4] = FLAG;
-
-    int bytes = write(fd, write_buf, 5);
-    
-    sleep(1);
+    read_data(fd);
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)

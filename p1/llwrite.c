@@ -48,6 +48,76 @@ void alarmHandler(int signal)
     printf("Alarm #%d\n", alarmCount);
 }
 
+void stablish_connection(int fd){
+    unsigned char write_buf[BUF_SIZE] = {0};
+    write_buf[0] = FLAG;
+    write_buf[1] = A_SENDER;
+    write_buf[2] = SET;
+    write_buf[3] = A_SENDER^SET;
+    write_buf[4] = FLAG;
+    
+    (void)signal(SIGALRM, alarmHandler);
+
+    while (alarmCount < 4){
+        if (alarmEnabled == FALSE)
+        {
+            STOP = FALSE;
+            int bytes = write(fd, write_buf, BUF_SIZE);
+            printf("%d bytes written\n", bytes);
+            alarm(3); // Set alarm to be triggered in 3s
+            alarmEnabled = TRUE;
+
+            // Wait until all bytes have been written to the serial port
+            sleep(1);
+
+            unsigned char read_buf[BUF_SIZE + 1] = {0};
+            while (STOP == FALSE){
+                // Returns after 5 chars have been input
+                int bytes = read(fd, read_buf, 1);
+                printf("var = 0x%02X\n", read_buf[0]);
+                switch (state)
+                {
+                case 0:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else state = 0;
+                    break;
+                case 1:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else if(read_buf[0] == A_RECEIVER) state = 2;
+                    else state = 0;
+                    break;
+                case 2:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else if(read_buf[0] == UA) state = 3;
+                    else state = 0;
+                    break;
+                case 3:
+                    if(read_buf[0] == FLAG) state = 1;
+                    else if(read_buf[0] == A_RECEIVER^UA) state = 4;
+                    else state = 0;
+                    break;
+                case 4:
+                    if(read_buf[0] == FLAG) {
+                        STOP = TRUE;
+                        printf("Success!");
+                        alarm(0);
+                        alarmCount = 4;
+                    }
+                    else state = 0;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void write_data(int fd){
+    
+}
+
+
 int main(int argc, char *argv[])
 {
     // Program usage: Uses either COM1 or COM2
@@ -114,69 +184,9 @@ int main(int argc, char *argv[])
 
     printf("New termios structure set\n");
 
-    // Establecimento ligação
-    unsigned char write_buf[BUF_SIZE] = {0};
-    write_buf[0] = FLAG;
-    write_buf[1] = A_SENDER;
-    write_buf[2] = SET;
-    write_buf[3] = A_SENDER^SET;
-    write_buf[4] = FLAG;
-    
-    (void)signal(SIGALRM, alarmHandler);
+    stablish_connection(fd);
 
-    while (alarmCount < 4){
-        if (alarmEnabled == FALSE)
-        {
-            STOP = FALSE;
-            int bytes = write(fd, write_buf, BUF_SIZE);
-            printf("%d bytes written\n", bytes);
-            alarm(3); // Set alarm to be triggered in 3s
-            alarmEnabled = TRUE;
-
-            // Wait until all bytes have been written to the serial port
-            sleep(1);
-
-            unsigned char read_buf[BUF_SIZE + 1] = {0};
-            while (STOP == FALSE){
-                // Returns after 5 chars have been input
-                int bytes = read(fd, read_buf, 1);
-                printf("var = 0x%02X\n", read_buf[0]);
-                switch (state)
-                {
-                case 0:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else state = 0;
-                    break;
-                case 1:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == A_RECEIVER) state = 2;
-                    else state = 0;
-                    break;
-                case 2:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == UA) state = 3;
-                    else state = 0;
-                    break;
-                case 3:
-                    if(read_buf[0] == FLAG) state = 1;
-                    else if(read_buf[0] == A_RECEIVER^UA) state = 4;
-                    else state = 0;
-                    break;
-                case 4:
-                    if(read_buf[0] == FLAG) {
-                        STOP = TRUE;
-                        printf("Success!");
-                        alarm(0);
-                        alarmCount = 4;
-                    }
-                    else state = 0;
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
-    }
+    write_data(fd);
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
