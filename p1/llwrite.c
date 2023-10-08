@@ -225,7 +225,6 @@ void write_data(int fd)
             {
                 // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
-                printf("var = 0x%02X\n", read_buf[0]);
                 if (N_local == 0x00)
                     state_machine(read_buf[0], A_RECEIVER, RR1, A_RECEIVER ^ RR1);
                 else if (N_local == 0x40)

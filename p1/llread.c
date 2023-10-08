@@ -167,7 +167,11 @@ void read_data(int fd){
     {
         // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-        if(read_buf[0] == FLAG) break;
+        if(read_buf[0] == FLAG){
+            trama[pos] = read_buf[0];
+            pos++;
+            break;
+        }
         if(read_buf[0] == 0x7D){
             bytes = read(fd, read_buf, 1);
             if(read_buf[0] == 0x5D){
@@ -184,6 +188,9 @@ void read_data(int fd){
             pos++;
         }
 
+    }
+    for(int i = 0; i <= pos; i++){
+        printf("0x%02X\n", trama[i]);
     }
 
     if (pos<8){ //if the message is too small
