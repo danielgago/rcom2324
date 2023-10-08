@@ -143,6 +143,8 @@ void stablish_connection(int fd)
 
 void write_data(int fd)
 {
+    alarmCount = 0;
+    alarmEnabled = FALSE;
     unsigned char fake_data[10] = {0x00, 0x7E, 0x05, 0x7D, 0x11, 0xFF, 0x7E, 0x7D, 0x7E, 0xFF};
     unsigned char write_buf[BUF_SIZE] = {0};
     write_buf[0] = FLAG;
@@ -211,7 +213,7 @@ void write_data(int fd)
         {
             STOP = FALSE;
             int bytes = write(fd, write_buf, BUF_SIZE);
-            printf("%d bytes written\n", bytes);
+            
             alarm(3); // Set alarm to be triggered in 3s
             alarmEnabled = TRUE;
 

@@ -154,12 +154,20 @@ void read_data(int fd){
     unsigned char trama[BUF_SIZE] = {0};
     int pos = 0;
     unsigned char read_buf[BUF_SIZE + 1] = {0};
+    while(TRUE){
+        read(fd, read_buf, 1);
+        if(read_buf[0] == FLAG){
+            trama[pos] = read_buf[0];
+            pos++;
+            break;
+        }
+    }
     // Destuffing
     while (TRUE)
     {
         // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-        if(bytes == 0) break;
+        if(read_buf[0] == FLAG) break;
         if(read_buf[0] == 0x7D){
             bytes = read(fd, read_buf, 1);
             if(read_buf[0] == 0x5D){
