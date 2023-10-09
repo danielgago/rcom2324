@@ -204,11 +204,11 @@ void read_data(int fd){
     /*Lazy Approach, need to change this!!!*/
 
     if(N_local == 0x00){
-        response = RR0;
+        response = RR1;
         N_local = 0x40;
     }
     else{
-        response = RR1;
+        response = RR0;
         N_local = 0x00;
     }
 
