@@ -122,7 +122,6 @@ void stablish_connection(int fd)
         {
             STOP = FALSE;
             int bytes = write(fd, write_buf, BUF_SIZE);
-            printf("%d bytes written\n", bytes);
             alarm(3); // Set alarm to be triggered in 3s
             alarmEnabled = TRUE;
 
@@ -132,9 +131,7 @@ void stablish_connection(int fd)
             unsigned char read_buf[BUF_SIZE + 1] = {0};
             while (STOP == FALSE)
             {
-                // Returns after 5 chars have been input
                 int bytes = read(fd, read_buf, 1);
-                printf("var = 0x%02X\n", read_buf[0]);
                 state_machine(read_buf[0], A_RECEIVER, UA, A_RECEIVER ^ UA);
             }
         }
