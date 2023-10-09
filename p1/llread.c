@@ -81,7 +81,7 @@ void state_machine_control(int curr_byte, unsigned char A, unsigned char C, unsi
     }
 }
 
-void state_machine_info(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
+void state_machine_info(int curr_byte, int *pos, unsigned char data[], unsigned char A, unsigned char C, unsigned char BCC1)
 {
     switch (state)
     {
@@ -116,8 +116,39 @@ void state_machine_info(int curr_byte, unsigned char A, unsigned char C, unsigne
             state = 0;
         break;
     case 4:
-        if (curr_byte == FLAG) STOP = TRUE;
-        else state = 0;
+        if (curr_byte == FLAG){
+            unsigned char destuf[BUF_SIZE] = {0};
+            int a = 0, b = 0;
+            while(a<*pos){
+                if (data[a] == 0x7D){
+                    a++;
+                    if(data[a] == 0x5E){
+                        destuf[b] = 0x7E;
+                    }
+                    else if (data[a] == 0x5D){
+                        destuf[b] = 0x7D;
+                    }
+                }
+                else {
+                    destuf[b] = data[a];
+                    }
+                b++;
+                a++;
+            }
+            unsigned char bcc2 = destuf[0];
+            for(int i=1; i<b-1; i++){
+                bcc2 = bcc2 ^ destuf[i];
+            }
+            if(destuf[b-1] == bcc2){
+                STOP = TRUE;
+            }
+            else state = 1;
+        }
+        else{
+            data[*pos] = curr_byte;
+            (*pos)++;
+        }
+
         break;
     default:
         break;
@@ -315,6 +346,7 @@ int main(int argc, char *argv[])
     establish_connection(fd);
 
     read_data(fd);
+    
 
     // Restore the old port settings
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
