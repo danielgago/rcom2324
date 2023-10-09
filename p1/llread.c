@@ -141,6 +141,10 @@ void state_machine_info(int curr_byte, int *pos, unsigned char data[], unsigned 
             }
             if(destuf[b-1] == bcc2){
                 STOP = TRUE;
+                for(int i=0;i<b-1;i++){
+                    data[i] = destuf[i];
+                }
+                *pos = b-1;
             }
             else state = 1;
         }
@@ -181,85 +185,31 @@ void establish_connection(int fd){
 }
 
 void read_data(int fd){
+    STOP = FALSE;
+    state = 0;
     unsigned char response;
-    unsigned char trama[BUF_SIZE] = {0};
+    unsigned char data[BUF_SIZE] = {0};
     int pos = 0;
     unsigned char read_buf[BUF_SIZE + 1] = {0};
-    while(TRUE){
-        read(fd, read_buf, 1);
-        if(read_buf[0] == FLAG){
-            trama[pos] = read_buf[0];
-            pos++;
-            break;
-        }
-    }
-    // Destuffing
-    while (TRUE)
+    while (STOP == FALSE)
     {
-        // Returns after 5 chars have been input
         int bytes = read(fd, read_buf, 1);
-        if(read_buf[0] == FLAG){
-            trama[pos] = read_buf[0];
-            pos++;
-            break;
-        }
-        if(read_buf[0] == 0x7D){
-            bytes = read(fd, read_buf, 1);
-            if(read_buf[0] == 0x5D){
-                trama[pos] = 0x7D;
-                pos++;
-            }
-            else if(read_buf[0] == 0x5E){
-                trama[pos] = 0x7E;
-                pos++;
-            }
-        }
-        else{
-            trama[pos] = read_buf[0];
-            pos++;
-        }
-
-    }
-    for(int i = 0; i <= pos; i++){
-        printf("0x%02X\n", trama[i]);
+        state_machine_info(read_buf[0], &pos, data, A_SENDER, I0, A_SENDER^I0);
     }
 
-    if (pos<8){ //if the message is too small
-        if(N_local == I0)
-            response = REJ0;
-        else if (N_local == I1)
-            response = REJ1;
+    for(int i = 0; i < pos; i++){
+        printf("0x%02X\n", data[i]);
+    }
+
+    /*Lazy Approach, need to change this!!!*/
+
+    if(N_local == 0x00){
+        response = RR0;
+        N_local = 0x40;
     }
     else{
-        unsigned char BCC2 = trama[4];
-        unsigned char BCC1 = trama[1]^trama[2];
-        for (int k = 5; k < pos-2; k++){
-            BCC2 = BCC2 ^ trama[k];
-        }
-        if ((BCC2 != trama[pos-2]) || (BCC1 != trama[3]) || trama[0] != FLAG || trama[pos-1] != FLAG || trama[1] != A_SENDER){ //if the message is corrupted
-            if(N_local == I0)
-                response = REJ0;
-            else if (N_local == I1)
-                response = REJ1;
-        }
-        else{
-            if(N_local != trama[2]){ //if the message is a duplicate
-                if(N_local == I0)
-                    response = RR0;
-                else if (N_local == I1)
-                    response = RR1;
-            }
-            else{
-                if(N_local == I0){
-                    response = RR1;
-                    N_local = I1;
-                }
-                else if (N_local == I1){
-                    response = RR0;
-                    N_local = I0;
-                }
-            }
-        }
+        response = RR1;
+        N_local = 0x00;
     }
 
 
