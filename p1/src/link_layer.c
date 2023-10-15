@@ -25,6 +25,138 @@ volatile int STOP = FALSE;
 int alarmEnabled = FALSE;
 int alarmCount = 0;
 
+void state_machine_info(int curr_byte, int *pos, unsigned char data[], unsigned char A, unsigned char C, unsigned char BCC1)
+{
+    switch (state)
+    {
+    case 0:
+        if (curr_byte == FLAG)
+            state = 1;
+        else
+            state = 0;
+        break;
+    case 1:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == A)
+            state = 2;
+        else
+            state = 0;
+        break;
+    case 2:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == C)
+            state = 3;
+        else
+            state = 0;
+        break;
+    case 3:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == BCC1)
+            state = 4;
+        else
+            state = 0;
+        break;
+    case 4:
+        if (curr_byte == FLAG){
+            unsigned char destuf[MAX_PAYLOAD_SIZE] = {0};
+            int a = 0, b = 0;
+            while(a<*pos){
+                if (data[a] == 0x7D){
+                    a++;
+                    if(data[a] == 0x5E){
+                        destuf[b] = 0x7E;
+                    }
+                    else if (data[a] == 0x5D){
+                        destuf[b] = 0x7D;
+                    }
+                }
+                else {
+                    destuf[b] = data[a];
+                    }
+                b++;
+                a++;
+            }
+            unsigned char bcc2 = destuf[0];
+            for(int i=1; i<b-1; i++){
+                bcc2 = bcc2 ^ destuf[i];
+            }
+            if(destuf[b-1] == bcc2){
+                STOP = TRUE;
+                for(int i=0;i<b-1;i++){
+                    data[i] = destuf[i];
+                }
+                *pos = b-1;
+            }
+            else state = 1;
+        }
+        else{
+            data[*pos] = curr_byte;
+            (*pos)++;
+        }
+
+        break;
+    default:
+        break;
+    }
+}
+
+void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
+{
+    switch (state)
+    {
+    case 0:
+        if (curr_byte == FLAG)
+            state = 1;
+        else
+            state = 0;
+        break;
+    case 1:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == A)
+            state = 2;
+        else
+            state = 0;
+        break;
+    case 2:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == C)
+            state = 3;
+        else
+            state = 0;
+        break;
+    case 3:
+        if (curr_byte == FLAG)
+            state = 1;
+        else if (curr_byte == BCC1)
+            state = 4;
+        else
+            state = 0;
+        break;
+    case 4:
+        if (curr_byte == FLAG)
+        {
+            STOP = TRUE;
+            printf("Success!");
+            alarm(0);
+            alarmCount = 4;
+            if(C == RR0)
+                N_local = I1;
+            else if (C == RR1)
+                N_local = I0;
+        }
+        else
+            state = 0;
+        break;
+    default:
+        break;
+    }
+}
+
 void alarmHandler(int signal)
 {
     alarmEnabled = FALSE;
@@ -71,12 +203,11 @@ int llopen(LinkLayer connectionParameters)
         perror("tcsetattr");
         exit(-1);
     }
-    
+    unsigned char write_buf[5] = {0};
     linkLayerRole = connectionParameters.role;
     switch (linkLayerRole)
     {
     case LlTx: ;
-        unsigned char write_buf[5] = {0};
         write_buf[0] = FLAG;
         write_buf[1] = A_SENDER;
         write_buf[2] = SET;
@@ -155,7 +286,6 @@ int llopen(LinkLayer connectionParameters)
         while (STOP == FALSE)
         {
             int bytes = read(fd, read_buf, 1);
-            state_machine_control(read_buf[0], A_SENDER, SET, A_SENDER ^ SET);
             switch (state)
             {
             case 0:
@@ -198,8 +328,6 @@ int llopen(LinkLayer connectionParameters)
         }
 
         sleep(1);
-
-        unsigned char write_buf[MAX_PAYLOAD_SIZE] = {0};
 
         write_buf[0] = FLAG;
         write_buf[1] = A_RECEIVER;
@@ -322,9 +450,9 @@ int llread(unsigned char *packet)
     STOP = FALSE;
     state = 0;
     unsigned char response;
-    unsigned char data[BUF_SIZE] = {0};
+    unsigned char data[MAX_PAYLOAD_SIZE] = {0};
     int pos = 0;
-    unsigned char read_buf[BUF_SIZE + 1] = {0};
+    unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
     while (STOP == FALSE)
     {
         int bytes = read(fd, read_buf, 1);

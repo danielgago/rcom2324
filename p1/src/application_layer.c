@@ -19,7 +19,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     {
         perror("Connection failed.\n");
     }
-    unsigned char *f = "ola";
+    unsigned char f[4] = "ola";
     switch (connectionParameters.role)
     {
     case LlTx: ;
