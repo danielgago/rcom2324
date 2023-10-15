@@ -18,13 +18,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     if (llopen(connectionParameters) == FALSE)
     {
         perror("Connection failed.\n");
-        return -1;
     }
-
+    unsigned char *f = "ola";
     switch (connectionParameters.role)
     {
-    case LlTx:
-        FILE *file = fopen(filename, "rb");
+    case LlTx: ;
+        /*FILE *file = fopen(filename, "rb");
         if (file == NULL)
         {
             perror("File not found\n");
@@ -34,6 +33,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         int prev = ftell(file);
         fseek(file, 0L, SEEK_END);
         long int fileSize = ftell(file) - prev;
-        fseek(file, prev, SEEK_SET);
+        fseek(file, prev, SEEK_SET);*/
+        llwrite(f, 0);
+        break;
+    case LlRx: ;
+        llread(f);
+        break;
     }
 }

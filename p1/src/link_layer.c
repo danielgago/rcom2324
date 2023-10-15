@@ -75,7 +75,7 @@ int llopen(LinkLayer connectionParameters)
     linkLayerRole = connectionParameters.role;
     switch (linkLayerRole)
     {
-    case LlTx:
+    case LlTx: ;
         unsigned char write_buf[5] = {0};
         write_buf[0] = FLAG;
         write_buf[1] = A_SENDER;
@@ -150,7 +150,7 @@ int llopen(LinkLayer connectionParameters)
             }
         }
         break;
-    case LlRx:
+    case LlRx: ;
         unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
         while (STOP == FALSE)
         {
@@ -194,7 +194,6 @@ int llopen(LinkLayer connectionParameters)
                 else
                     state = 0;
                 break;
-            default:
             }
         }
 
