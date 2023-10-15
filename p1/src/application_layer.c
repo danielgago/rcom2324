@@ -4,6 +4,8 @@
 
 #include "link_layer.h"
 
+#include <stdio.h>
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
@@ -11,14 +13,21 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     connectionParameters.baudRate = baudRate;
     connectionParameters.nRetransmissions = nTries;
-    connectionParameters.role = role == "tx" ? LlTx : LlRx;
-    *connectionParameters.serialPort = serialPort;
+    if(role[0] == 't' && role[1] == 'x')
+        connectionParameters.role = LlTx;
+    else if(role[0] == 'r' && role[1] == 'x')
+        connectionParameters.role = LlRx;
+    else
+        perror("Invalid role.\n");
+    for(int i=0; i<12; i++)
+        connectionParameters.serialPort[i] = serialPort[i];
     connectionParameters.timeout = timeout;
 
     if (llopen(connectionParameters) == FALSE)
     {
         perror("Connection failed.\n");
     }
+    printf("Connection established.\n");
     unsigned char f[4] = "ola";
     switch (connectionParameters.role)
     {

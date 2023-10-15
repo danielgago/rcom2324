@@ -208,6 +208,7 @@ int llopen(LinkLayer connectionParameters)
     switch (linkLayerRole)
     {
     case LlTx: ;
+        printf("LlTx\n");
         write_buf[0] = FLAG;
         write_buf[1] = A_SENDER;
         write_buf[2] = SET;
@@ -282,6 +283,7 @@ int llopen(LinkLayer connectionParameters)
         }
         break;
     case LlRx: ;
+        printf("LlRx\n");
         unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
         while (STOP == FALSE)
         {
@@ -350,6 +352,7 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    printf("llwrite\n");
     alarmCount = 0;
     alarmEnabled = FALSE;
     unsigned char fake_data[10] = {0x00, 0x7E, 0x05, 0x7D, 0x11, 0xFF, 0x7E, 0x7D, 0x7E, 0xFF};
@@ -447,6 +450,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+    printf("llread\n");
     STOP = FALSE;
     state = 0;
     unsigned char response;
