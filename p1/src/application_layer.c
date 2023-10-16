@@ -31,7 +31,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     unsigned char f[4] = "ola";
     switch (connectionParameters.role)
     {
-    case LlTx: ;
+    case LlTx:
         /*FILE *file = fopen(filename, "rb");
         if (file == NULL)
         {
@@ -45,7 +45,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         fseek(file, prev, SEEK_SET);*/
         llwrite(f, 0);
         break;
-    case LlRx: ;
+    case LlRx:
         llread(f);
         break;
     }
