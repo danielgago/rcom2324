@@ -71,6 +71,8 @@ int llopen(LinkLayer connectionParameters)
         perror("tcsetattr");
         exit(-1);
     }
+
+    int success = FALSE;
     unsigned char write_buf[5] = {0};
     linkLayerRole = connectionParameters.role;
     switch (linkLayerRole)
@@ -99,7 +101,7 @@ int llopen(LinkLayer connectionParameters)
                 unsigned char read_byte;
                 while (STOP == FALSE)
                 {
-                    int bytes = read(fd, read_byte, 1);
+                    int bytes = read(fd, &read_byte, 1);
                     switch (state)
                     {
                     case 0:
@@ -136,6 +138,7 @@ int llopen(LinkLayer connectionParameters)
                         if (read_byte == FLAG)
                         {
                             STOP = TRUE;
+                            success = TRUE;
                             printf("Success!");
                             alarm(0);
                             state = 5;
@@ -146,51 +149,55 @@ int llopen(LinkLayer connectionParameters)
                     default:
                         break;
                     }
+                    printf("var = 0x%02X\n", read_byte);
+                    printf("State %d\n", state);
                 }
             }
         }
         break;
     case LlRx: ;
         printf("LlRx\n");
-        unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
+        unsigned char read_byte;
         while (STOP == FALSE)
         {
-            int bytes = read(fd, read_buf, 1);
+            int bytes = read(fd, &read_byte, 1);
             switch (state)
             {
             case 0:
-                if (read_buf[0] == FLAG)
+                if (read_byte == FLAG)
                     state = 1;
                 else
                     state = 0;
                 break;
             case 1:
-                if (read_buf[0] == FLAG)
+                if (read_byte == FLAG)
                     state = 1;
-                else if (read_buf[0] == A_SENDER)
+                else if (read_byte == A_SENDER)
                     state = 2;
                 else
                     state = 0;
                 break;
             case 2:
-                if (read_buf[0] == FLAG)
+                if (read_byte == FLAG)
                     state = 1;
-                else if (read_buf[0] == SET)
+                else if (read_byte == SET)
                     state = 3;
                 else
                     state = 0;
                 break;
             case 3:
-                if (read_buf[0] == FLAG)
+                if (read_byte == FLAG)
                     state = 1;
-                else if (read_buf[0] == A_SENDER ^ SET)
+                else if (read_byte == A_SENDER ^ SET)
                     state = 4;
                 else
                     state = 0;
                 break;
             case 4:
-                if (read_buf[0] == FLAG)
+                if (read_byte == FLAG){
                     STOP = TRUE;
+                    success = TRUE;
+                }
                 else
                     state = 0;
                 break;
@@ -212,7 +219,7 @@ int llopen(LinkLayer connectionParameters)
     default:
         break;
     }
-    return  STOP;
+    return success;
 }
 
 ////////////////////////////////////////////////

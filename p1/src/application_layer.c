@@ -3,7 +3,6 @@
 #include "application_layer.h"
 
 #include "link_layer.h"
-
 #include <stdio.h>
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
@@ -26,23 +25,21 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     if (llopen(connectionParameters) == FALSE)
     {
         perror("Connection failed.\n");
+        exit(-1);
     }
     printf("Connection established.\n");
     unsigned char f[4] = "ola";
     switch (connectionParameters.role)
     {
     case LlTx:
-        /*FILE *file = fopen(filename, "rb");
+        FILE *file = fopen(filename, "rb");
         if (file == NULL)
         {
             perror("File not found\n");
             exit(-1);
         }
 
-        int prev = ftell(file);
-        fseek(file, 0L, SEEK_END);
-        long int fileSize = ftell(file) - prev;
-        fseek(file, prev, SEEK_SET);*/
+        
         llwrite(f, 0);
         break;
     case LlRx:
