@@ -4,6 +4,7 @@
 
 #include "link_layer.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -31,7 +32,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     unsigned char f[4] = "ola";
     switch (connectionParameters.role)
     {
-    case LlTx:
+    case LlTx: ;
         FILE *file = fopen(filename, "rb");
         if (file == NULL)
         {

@@ -61,7 +61,7 @@ int llopen(LinkLayer connectionParameters)
     newtio.c_oflag = 0;
 
     newtio.c_lflag = 0;
-    newtio.c_cc[VTIME] = 0.1; // Inter-character timer
+    newtio.c_cc[VTIME] = 1; // Inter-character timer
     newtio.c_cc[VMIN] = 0;    // Blocking read until
 
     tcflush(fd, TCIOFLUSH);
@@ -149,8 +149,7 @@ int llopen(LinkLayer connectionParameters)
                     default:
                         break;
                     }
-                    printf("var = 0x%02X\n", read_byte);
-                    printf("State %d\n", state);
+                    
                 }
             }
         }
@@ -214,7 +213,7 @@ int llopen(LinkLayer connectionParameters)
 
         int bytes = write(fd, write_buf, 5);
 
-        sleep(1);
+        
         break;
     default:
         break;
@@ -246,7 +245,7 @@ int llwrite(const unsigned char *buf, int bufSize)
     {
         bcc2 = bcc2 ^ fake_data[k];
     }
-
+    
     // Stuffing
     int j = 4;
     int i = 0;
@@ -289,6 +288,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         j++;
     }
     write_buf[j] = FLAG;
+    j++;
 
     (void)signal(SIGALRM, alarmHandler);
 
@@ -297,12 +297,10 @@ int llwrite(const unsigned char *buf, int bufSize)
         if (alarmEnabled == FALSE)
         {
             STOP = FALSE;
-            int bytes = write(fd, write_buf, bufSize);
+            int bytes = write(fd, write_buf, j); // This is wrong, need to change this to bufSize
             
             alarm(3);
             alarmEnabled = TRUE;
-
-            sleep(1);
 
             unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
             while (STOP == FALSE)
@@ -331,11 +329,11 @@ int llread(unsigned char *packet)
     unsigned char response;
     unsigned char data[MAX_PAYLOAD_SIZE] = {0};
     int pos = 0;
-    unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
+    unsigned char read_byte;
     while (STOP == FALSE)
     {
-        int bytes = read(fd, read_buf, 1);
-        state_machine_info(read_buf[0], &pos, data, A_SENDER, I0, A_SENDER^I0);
+        int bytes = read(fd, &read_byte, 1);
+        state_machine_info(read_byte, &pos, data, A_SENDER, I0, A_SENDER^I0);
     }
 
     for(int i = 0; i < pos; i++){
@@ -356,14 +354,19 @@ int llread(unsigned char *packet)
     sleep(1);
 
     unsigned char write_buf[5] = {0};
+    unsigned char test_read;
+    while(TRUE){
+        read(fd, &test_read, 1);
+        if(test_read != 0x00)
+            break;
+        write_buf[0] = FLAG;
+        write_buf[1] = A_RECEIVER;
+        write_buf[2] = response;    
+        write_buf[3] = A_RECEIVER^response;
+        write_buf[4] = FLAG;
 
-    write_buf[0] = FLAG;
-    write_buf[1] = A_RECEIVER;
-    write_buf[2] = response;    
-    write_buf[3] = A_RECEIVER^response;
-    write_buf[4] = FLAG;
-
-    int bytes = write(fd, write_buf, 5);
+        int bytes = write(fd, write_buf, 5);
+    }
     
     sleep(1);
 }
@@ -378,7 +381,7 @@ int llclose(int showStatistics)
     return 1;
 }
 
-void state_machine_info(int curr_byte, int *pos, unsigned char data[], unsigned char A, unsigned char C, unsigned char BCC1)
+void state_machine_info(unsigned char curr_byte, int *pos, unsigned char data[], unsigned char A, unsigned char C, unsigned char BCC1)
 {
     switch (state)
     {
@@ -443,11 +446,15 @@ void state_machine_info(int curr_byte, int *pos, unsigned char data[], unsigned 
                 }
                 *pos = b-1;
             }
-            else state = 1;
+            else{
+                *pos = 0;
+                state = 1;
+            }
         }
         else{
             data[*pos] = curr_byte;
             (*pos)++;
+            printf("pos: %d - curr_byte: %02x\n", *pos, curr_byte);
         }
 
         break;
