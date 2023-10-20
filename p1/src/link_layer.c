@@ -344,6 +344,10 @@ int llread(unsigned char *packet)
         else if (N_local == 0x40)
             state_machine_info(read_byte, &pos, data, A_SENDER, I1, A_SENDER ^ I1);
     }
+    for (int i = 0; i < pos; i++)
+    {
+        packet[i] = data[i];
+    }
 
     /*Lazy Approach, need to change this!!!*/
 
