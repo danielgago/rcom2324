@@ -139,7 +139,6 @@ int llopen(LinkLayer connectionParameters)
                         {
                             STOP = TRUE;
                             success = TRUE;
-                            printf("Success!");
                             alarm(0);
                             state = 5;
                         }
@@ -226,7 +225,7 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    printf("llwrite\n");
+    printf("llwrite - Nlocal %d\n", N_local);
     alarmCount = 0;
     state = 0;
     alarmEnabled = FALSE;
@@ -324,7 +323,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    printf("llread\n");
+    printf("llread - Nlocal %d\n", N_local);
     STOP = FALSE;
     state = 0;
     unsigned char response;
@@ -334,11 +333,10 @@ int llread(unsigned char *packet)
     while (STOP == FALSE)
     {
         int bytes = read(fd, &read_byte, 1);
-        state_machine_info(read_byte, &pos, data, A_SENDER, I0, A_SENDER^I0);
-    }
-
-    for(int i = 0; i < pos; i++){
-        printf("0x%02X\n", data[i]);
+        if(N_local == 0x00)
+            state_machine_info(read_byte, &pos, data, A_SENDER, I0, A_SENDER^I0);
+        else if (N_local == 0x40)
+            state_machine_info(read_byte, &pos, data, A_SENDER, I1, A_SENDER^I1);
     }
 
     /*Lazy Approach, need to change this!!!*/
@@ -455,7 +453,6 @@ void state_machine_info(unsigned char curr_byte, int *pos, unsigned char data[],
         else{
             data[*pos] = curr_byte;
             (*pos)++;
-            printf("pos: %d - curr_byte: %02x\n", *pos, curr_byte);
         }
 
         break;
@@ -506,9 +503,9 @@ void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsign
             alarm(0);
             state = 5;
             if(C == RR0)
-                N_local = I1;
-            else if (C == RR1)
                 N_local = I0;
+            else if (C == RR1)
+                N_local = I1;
         }
         else
             state = 0;
