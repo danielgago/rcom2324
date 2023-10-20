@@ -79,7 +79,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         unsigned char data[256];
         int bytes_read;
 
-        while ((bytes_read = fread(&data, 1, sizeof(data), input_file)) > 0)
+        while ((bytes_read = fread(data, 1, sizeof(data), input_file)) > 0)
         {
             unsigned char *tx_data_packet = (char *)malloc(3 + bytes_read);
             int tx_data_packet_pos = 0;
@@ -107,7 +107,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         // Start packet
         unsigned char rx_control_packet[MAX_PAYLOAD_SIZE];
 
-        llread(&rx_control_packet);
+        llread(rx_control_packet);
         unsigned char L1 = rx_control_packet[2];
         long output_file_size = 0;
         for (unsigned int i = 0; i < L1; i++)
@@ -123,7 +123,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         while (1)
         {
             printf("Hey!\n");
-            llread(&rx_data_packet);
+            llread(rx_data_packet);
             for (int i = 0; i < 10; i++)
             {
                 printf("%u ", rx_data_packet[i]);
