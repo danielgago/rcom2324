@@ -369,6 +369,7 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
+    printf("llclose");
     state = 0;
     alarmCount = 0;
     alarmEnabled = FALSE;
@@ -459,7 +460,6 @@ int llclose(int showStatistics)
 
         break;
     case LlRx: ;
-        printf("LlRx\n");
         unsigned char read_byte;
         while (STOP == FALSE)
         {
@@ -506,6 +506,7 @@ int llclose(int showStatistics)
             }
         }
 
+
         write_buf[0] = FLAG;
         write_buf[1] = A_RECEIVER;
         write_buf[2] = DISC;
@@ -513,6 +514,10 @@ int llclose(int showStatistics)
         write_buf[4] = FLAG;
 
         write(fd, write_buf, 5);
+        state = 0;
+        alarmCount = 0;
+        alarmEnabled = FALSE;
+        STOP = FALSE;
 
         while (STOP == FALSE)
         {
