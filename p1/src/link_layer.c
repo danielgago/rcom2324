@@ -229,7 +229,6 @@ int llwrite(const unsigned char *buf, int bufSize)
     alarmCount = 0;
     state = 0;
     alarmEnabled = FALSE;
-    unsigned char fake_data[10] = {0x00, 0x7E, 0x05, 0x7D, 0x11, 0xFF, 0x7E, 0x7D, 0x7E, 0xFF};
     unsigned char write_buf[MAX_PAYLOAD_SIZE] = {0};
     write_buf[0] = FLAG;
     write_buf[1] = A_SENDER;
@@ -240,24 +239,24 @@ int llwrite(const unsigned char *buf, int bufSize)
     write_buf[3] = A_SENDER ^ write_buf[2]; // BCC1
 
     // BCC2 = P1^P2^...^Pn
-    unsigned char bcc2 = fake_data[0];
-    for (int k = 1; k < 10; k++)
+    unsigned char bcc2 = buf[0];
+    for (int k = 1; k < bufSize; k++)
     {
-        bcc2 = bcc2 ^ fake_data[k];
+        bcc2 = bcc2 ^ buf[k];
     }
     
     // Stuffing
     int j = 4;
     int i = 0;
-    while (i < 10)
+    while (i < bufSize)
     {
-        if (fake_data[i] == FLAG)
+        if (buf[i] == FLAG)
         {
             write_buf[j] = ESC;
             write_buf[j + 1] = 0x5E;
             j += 2;
         }
-        else if (fake_data[i] == ESC)
+        else if (buf[i] == ESC)
         {
             write_buf[j] = ESC;
             write_buf[j + 1] = 0x5D;
@@ -265,7 +264,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         }
         else
         {
-            write_buf[j] = fake_data[i];
+            write_buf[j] = buf[i];
             j++;
         }
         i++;
