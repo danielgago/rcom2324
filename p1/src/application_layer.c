@@ -46,7 +46,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         // Start packet
         int tx_control_packet_size = 5 + sizeof(long) + strlen(filename);
 
-        unsigned char *tx_control_packet = (char *)malloc(tx_control_packet_size * sizeof(char));
+        unsigned char *tx_control_packet = (unsigned char *)malloc(tx_control_packet_size * sizeof(unsigned char));
         int tx_control_packet_pos = 0;
 
         tx_control_packet[tx_control_packet_pos++] = 2;
@@ -55,7 +55,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         for (int i = 0; i < sizeof(long); i++)
         {
-            tx_control_packet[tx_control_packet_pos++] = (char)((input_file_size >> (i * 8)) & 0xFF);
+            tx_control_packet[tx_control_packet_pos++] = (unsigned char)((input_file_size >> (i * 8)) & 0xFF);
         }
 
         tx_control_packet[tx_control_packet_pos++] = 1;
@@ -66,6 +66,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             tx_control_packet[tx_control_packet_pos++] = filename[i];
         }
 
+        for (int i = 0; i < 10; i++)
+        {
+            printf("%u ", tx_control_packet[i]);
+        }
+        printf("\n");
+
         llwrite(tx_control_packet, tx_control_packet_size);
 
         // Data packets
@@ -73,7 +79,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         unsigned char data[256];
         int bytes_read;
 
-        while ((bytes_read = fread(data, 1, sizeof(data), input_file)) > 0)
+        while ((bytes_read = fread(&data, 1, sizeof(data), input_file)) > 0)
         {
             unsigned char *tx_data_packet = (char *)malloc(3 + bytes_read);
             int tx_data_packet_pos = 0;
@@ -82,12 +88,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             tx_data_packet[tx_data_packet_pos++] = bytes_read >> 8 & 0xFF;
             tx_data_packet[tx_data_packet_pos++] = bytes_read & 0xFF;
 
-            for (int i = 0; i < sizeof(long); i++)
+            for (int i = 0; i < bytes_read; i++)
             {
-                tx_control_packet[tx_control_packet_pos++] = data[i];
+                tx_data_packet[tx_data_packet_pos++] = data[i];
             }
 
-            llwrite(tx_data_packet, bytes_read);
+            llwrite(tx_data_packet, bytes_read + 3);
         }
 
         // End packet
@@ -118,7 +124,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         {
             printf("Hey!\n");
             llread(&rx_data_packet);
-            for (int i = 0; rx_data_packet[i] != '\0'; i++)
+            for (int i = 0; i < 10; i++)
             {
                 printf("%u ", rx_data_packet[i]);
             }
