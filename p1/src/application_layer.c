@@ -117,6 +117,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         // Data packets
         FILE *output_file = fopen(filename, "wb");
+        if (output_file == NULL)
+        {
+            perror("Could not open file\n");
+            exit(-1);
+        }
 
         unsigned char rx_data_packet[MAX_PAYLOAD_SIZE];
 
@@ -130,12 +135,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             }
             printf("\n");
             long rx_data_size = 0;
-            if (rx_data_packet[0] == 0)
+            if (rx_data_packet[0] == 1)
             {
                 printf("Hey2!\n");
                 rx_data_size = (rx_data_packet[1] << 8) | rx_data_packet[2];
-                fwrite(rx_data_packet[3], sizeof(char), rx_data_size, output_file);
-                printf("Hey3!\n");
+                size_t bytes_written = fwrite(&rx_data_packet[3], sizeof(char), rx_data_size, output_file);
+                printf("Bytes written = %d\n", bytes_written);
             }
             else if (rx_data_packet[0] == 3)
                 break;
