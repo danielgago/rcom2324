@@ -15,6 +15,7 @@
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
 LinkLayerRole linkLayerRole;
+struct termios oldtio;
 
 int state = 0;
 unsigned char N_local = 0x00;
@@ -46,7 +47,6 @@ int llopen(LinkLayer connectionParameters)
         exit(-1);
     }
 
-    struct termios oldtio;
     struct termios newtio;
     if (tcgetattr(fd, &oldtio) == -1)
     {
@@ -92,7 +92,7 @@ int llopen(LinkLayer connectionParameters)
             if (alarmEnabled == FALSE)
             {
                 STOP = FALSE;
-                int bytes = write(fd, write_buf, MAX_PAYLOAD_SIZE);
+                int bytes = write(fd, write_buf, 5);
                 alarm(3);
                 alarmEnabled = TRUE;
 
@@ -369,9 +369,211 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
-    // TODO
+    state = 0;
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    STOP = FALSE;
+    unsigned char write_buf[5] = {0};
+    switch (linkLayerRole)
+    {
+    case LlTx: ;
+        write_buf[0] = FLAG;
+        write_buf[1] = A_SENDER;
+        write_buf[2] = DISC;
+        write_buf[3] = A_SENDER ^ DISC;
+        write_buf[4] = FLAG;
 
-    return 1;
+        (void)signal(SIGALRM, alarmHandler);
+
+        while (alarmCount < 4 && state != 5)
+        {
+            if (alarmEnabled == FALSE)
+            {
+                STOP = FALSE;
+                int bytes = write(fd, write_buf, 5);
+                alarm(3);
+                alarmEnabled = TRUE;
+
+                sleep(1);
+
+                unsigned char read_byte;
+                while (STOP == FALSE)
+                {
+                    int bytes = read(fd, &read_byte, 1);
+                    switch (state)
+                    {
+                    case 0:
+                        if (read_byte == FLAG)
+                            state = 1;
+                        else
+                            state = 0;
+                        break;
+                    case 1:
+                        if (read_byte == FLAG)
+                            state = 1;
+                        else if (read_byte == A_RECEIVER)
+                            state = 2;
+                        else
+                            state = 0;
+                        break;
+                    case 2:
+                        if (read_byte == FLAG)
+                            state = 1;
+                        else if (read_byte == DISC)
+                            state = 3;
+                        else
+                            state = 0;
+                        break;
+                    case 3:
+                        if (read_byte == FLAG)
+                            state = 1;
+                        else if (read_byte == A_RECEIVER ^ DISC)
+                            state = 4;
+                        else
+                            state = 0;
+                        break;
+                    case 4:
+                        if (read_byte == FLAG)
+                        {
+                            STOP = TRUE;
+                            alarm(0);
+                            state = 5;
+                        }
+                        else
+                            state = 0;
+                        break;
+                    default:
+                        break;
+                    }
+                    
+                }
+            }
+        }
+
+        write_buf[0] = FLAG;
+        write_buf[1] = A_SENDER;
+        write_buf[2] = UA;
+        write_buf[3] = A_SENDER ^ UA;
+        write_buf[4] = FLAG;
+        write(fd, write_buf, 5);
+
+        break;
+    case LlRx: ;
+        printf("LlRx\n");
+        unsigned char read_byte;
+        while (STOP == FALSE)
+        {
+            int bytes = read(fd, &read_byte, 1);
+            switch (state)
+            {
+            case 0:
+                if (read_byte == FLAG)
+                    state = 1;
+                else
+                    state = 0;
+                break;
+            case 1:
+                if (read_byte == FLAG)
+                    state = 1;
+                else if (read_byte == A_SENDER)
+                    state = 2;
+                else
+                    state = 0;
+                break;
+            case 2:
+                if (read_byte == FLAG)
+                    state = 1;
+                else if (read_byte == DISC)
+                    state = 3;
+                else
+                    state = 0;
+                break;
+            case 3:
+                if (read_byte == FLAG)
+                    state = 1;
+                else if (read_byte == A_SENDER ^ DISC)
+                    state = 4;
+                else
+                    state = 0;
+                break;
+            case 4:
+                if (read_byte == FLAG){
+                    STOP = TRUE;
+                }
+                else
+                    state = 0;
+                break;
+            }
+        }
+
+        write_buf[0] = FLAG;
+        write_buf[1] = A_RECEIVER;
+        write_buf[2] = DISC;
+        write_buf[3] = A_RECEIVER ^ DISC;
+        write_buf[4] = FLAG;
+
+        write(fd, write_buf, 5);
+
+        while (STOP == FALSE)
+        {
+            int bytes = read(fd, &read_byte, 1);
+            switch (state)
+            {
+            case 0:
+                if (read_byte == FLAG)
+                    state = 1;
+                else
+                    state = 0;
+                break;
+            case 1:
+                if (read_byte == FLAG)
+                    state = 1;
+                else if (read_byte == A_SENDER)
+                    state = 2;
+                else
+                    state = 0;
+                break;
+            case 2:
+                if (read_byte == FLAG)
+                    state = 1;
+                else if (read_byte == UA)
+                    state = 3;
+                else
+                    state = 0;
+                break;
+            case 3:
+                if (read_byte == FLAG)
+                    state = 1;
+                else if (read_byte == A_SENDER ^ UA)
+                    state = 4;
+                else
+                    state = 0;
+                break;
+            case 4:
+                if (read_byte == FLAG){
+                    STOP = TRUE;
+                }
+                else
+                    state = 0;
+                break;
+            }
+        }
+        
+        break;
+    default:
+        break;
+    }
+
+    // Restore the old port settings
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    {
+        perror("tcsetattr");
+        exit(-1);
+    }
+
+    close(fd);
+
+    return 0;
 }
 
 void state_machine_info(unsigned char curr_byte, int *pos, unsigned char data[], unsigned char A, unsigned char C, unsigned char BCC1)
@@ -457,8 +659,6 @@ void state_machine_info(unsigned char curr_byte, int *pos, unsigned char data[],
 
 void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
 {
-    printf("var = 0x%02X\n", curr_byte);
-    printf("state = 0x%d\n", state);
     switch (state)
     {
     case 0:
@@ -495,7 +695,6 @@ void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsign
         if (curr_byte == FLAG)
         {
             STOP = TRUE;
-            printf("Success!");
             alarm(0);
             state = 5;
             if(C == RR0)
