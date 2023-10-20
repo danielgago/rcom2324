@@ -302,15 +302,15 @@ int llwrite(const unsigned char *buf, int bufSize)
             alarm(3);
             alarmEnabled = TRUE;
 
-            unsigned char read_buf[MAX_PAYLOAD_SIZE + 1] = {0};
+            unsigned char read_byte;
             while (STOP == FALSE)
             {
 
-                int bytes = read(fd, read_buf, 1);
+                int bytes = read(fd, &read_byte, 1);
                 if (N_local == 0x00)
-                    write_state_machine(read_buf[0], A_RECEIVER, RR1, A_RECEIVER ^ RR1);
+                    write_state_machine(read_byte, A_RECEIVER, RR1, A_RECEIVER ^ RR1);
                 else if (N_local == 0x40)
-                    write_state_machine(read_buf[0], A_RECEIVER, RR0, A_RECEIVER ^ RR0);
+                    write_state_machine(read_byte, A_RECEIVER, RR0, A_RECEIVER ^ RR0);
             }
         }
     }
@@ -353,19 +353,13 @@ int llread(unsigned char *packet)
     sleep(1);
 
     unsigned char write_buf[5] = {0};
-    unsigned char test_read;
-    while(TRUE){
-        read(fd, &test_read, 1);
-        if(test_read != 0x00)
-            break;
-        write_buf[0] = FLAG;
-        write_buf[1] = A_RECEIVER;
-        write_buf[2] = response;    
-        write_buf[3] = A_RECEIVER^response;
-        write_buf[4] = FLAG;
+    write_buf[0] = FLAG;
+    write_buf[1] = A_RECEIVER;
+    write_buf[2] = response;    
+    write_buf[3] = A_RECEIVER^response;
+    write_buf[4] = FLAG;
 
     int bytes = write(fd, write_buf, 5);
-    }
     
     sleep(1);
 }
@@ -463,6 +457,8 @@ void state_machine_info(unsigned char curr_byte, int *pos, unsigned char data[],
 
 void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)
 {
+    printf("var = 0x%02X\n", curr_byte);
+    printf("state = 0x%d\n", state);
     switch (state)
     {
     case 0:
