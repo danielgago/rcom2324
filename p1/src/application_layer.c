@@ -99,6 +99,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     case LlRx: ;
         unsigned char *amogus = "sus";
         llread(amogus);
+        llclose(0);
         break;
     }
 }
