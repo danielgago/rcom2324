@@ -66,7 +66,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
 
         llwrite(control_packet, control_packet_size);
-/*
+
         // Data packets
         fseek(file, 0, SEEK_SET);
         unsigned char data[MAX_PAYLOAD_SIZE];
@@ -92,7 +92,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         // End packet
         control_packet[0] = 3;
         llwrite(control_packet, control_packet_size);
-*/
+
         llclose(0);
 
         break;
