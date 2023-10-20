@@ -228,6 +228,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 {
     printf("llwrite\n");
     alarmCount = 0;
+    state = 0;
     alarmEnabled = FALSE;
     unsigned char fake_data[10] = {0x00, 0x7E, 0x05, 0x7D, 0x11, 0xFF, 0x7E, 0x7D, 0x7E, 0xFF};
     unsigned char write_buf[MAX_PAYLOAD_SIZE] = {0};
@@ -292,7 +293,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     (void)signal(SIGALRM, alarmHandler);
 
-    while (alarmCount < 4)
+    while (alarmCount < 4 && state != 5)
     {
         if (alarmEnabled == FALSE)
         {
@@ -365,7 +366,7 @@ int llread(unsigned char *packet)
         write_buf[3] = A_RECEIVER^response;
         write_buf[4] = FLAG;
 
-        int bytes = write(fd, write_buf, 5);
+    int bytes = write(fd, write_buf, 5);
     }
     
     sleep(1);
@@ -503,7 +504,7 @@ void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsign
             STOP = TRUE;
             printf("Success!");
             alarm(0);
-            alarmCount = 4;
+            state = 5;
             if(C == RR0)
                 N_local = I1;
             else if (C == RR1)

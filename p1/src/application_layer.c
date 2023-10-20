@@ -40,11 +40,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             exit(-1);
         }
 
-        
-        llwrite(f, 0);
+        for (int i=0; i<4; i++)
+            llwrite(f, 0);
         break;
     case LlRx:
-        llread(f);
+        for (int i=0; i<4; i++)
+            llread(f);
         break;
     }
 }
