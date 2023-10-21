@@ -48,6 +48,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         unsigned char *tx_control_packet = (unsigned char *)malloc(tx_control_packet_size * sizeof(unsigned char));
         int tx_control_packet_pos = 0;
+        int timeout = FALSE;
 
         tx_control_packet[tx_control_packet_pos++] = 2;
         tx_control_packet[tx_control_packet_pos++] = 0;
@@ -72,7 +73,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         printf("\n");
 
-        llwrite(tx_control_packet, tx_control_packet_size);
+        if(llwrite(tx_control_packet, tx_control_packet_size) == FALSE)
+        {
+            printf("TIMEOUT\n");
+            break;
+        }
 
         // Data packets
         fseek(input_file, 0, SEEK_SET);
@@ -93,12 +98,24 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 tx_data_packet[tx_data_packet_pos++] = data[i];
             }
 
-            llwrite(tx_data_packet, bytes_read + 3);
+            if(llwrite(tx_data_packet, bytes_read + 3) == FALSE)
+            {
+                printf("TIMEOUT\n");
+                timeout = TRUE;
+                break;
+            }
         }
 
+        if(timeout == TRUE)
+            break;
+        
         // End packet
         tx_control_packet[0] = 3;
-        llwrite(tx_control_packet, tx_control_packet_size);
+        if(llwrite(tx_control_packet, tx_control_packet_size) == FALSE)
+        {
+            printf("TIMEOUT\n");
+            break;
+        }
 
         llclose(0);
 
@@ -125,10 +142,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         unsigned char rx_data_packet[MAX_PAYLOAD_SIZE];
 
-        while (1)
+        while (TRUE)
         {
             printf("Hey!\n");
-            llread(rx_data_packet);
+            int new_packet = llread(rx_data_packet);
+            if(new_packet == FALSE)
+                continue;
             for (int i = 0; i < 10; i++)
             {
                 printf("%u ", rx_data_packet[i]);
