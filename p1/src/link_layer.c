@@ -304,24 +304,94 @@ int llwrite(const unsigned char *buf, int bufSize)
         {
             STOP = FALSE;
             printf("j = %d\n", j);
-            int bytes = write(fd, write_buf, j); // This is wrong, need to change this to bufSize
+            int bytes = write(fd, write_buf, j+1);
             alarm(3);
             alarmEnabled = TRUE;
 
             unsigned char read_byte;
+            unsigned char control;
             while (STOP == FALSE)
             {
 
                 int bytes = read(fd, &read_byte, 1);
-                if (N_local == 0x00)
-                    write_state_machine(read_byte, A_RECEIVER, RR1, A_RECEIVER ^ RR1);
-                else if (N_local == 0x40)
-                    write_state_machine(read_byte, A_RECEIVER, RR0, A_RECEIVER ^ RR0);
+
+                switch (state)
+                {
+                case 0:
+                    if (read_byte == FLAG)
+                        state = 1;
+                    else
+                        state = 0;
+                    break;
+                case 1:
+                    if (read_byte == FLAG)
+                        state = 1;
+                    else if (read_byte == A_RECEIVER)
+                        state = 2;
+                    else
+                        state = 0;
+                    break;
+                case 2:
+                    if (read_byte == FLAG)
+                        state = 1;
+                    else if (read_byte == RR1 || read_byte == RR0 || read_byte == REJ1 || read_byte == REJ0){
+                        control = read_byte;
+                        state = 3;
+                    }
+                    else
+                        state = 0;
+                    break;
+                case 3:
+                    if (read_byte == FLAG)
+                        state = 1;
+                    else if (read_byte == A_RECEIVER ^ control)
+                        state = 4;
+                    else
+                        state = 0;
+                    break;
+                case 4:
+                    if (read_byte == FLAG)
+                    {
+                        if(control == RR0 || control == RR1){
+                            STOP = TRUE;
+                            alarm(0);
+                            state = 5;
+                            if ((N_local == I0 && control == RR1) || (N_local == I1 && control == RR0)){
+                                if (N_local == I1)
+                                    N_local = I0;
+                                else if (N_local == I0)
+                                    N_local = I1;
+                            }
+                        }
+                        else if(control == REJ0 || control == REJ1){
+                            if ((N_local == I0 && control == REJ0) || (N_local == I1 && control == REJ1)){ //Sent wrong info, but reader already read well once
+                                STOP = TRUE;
+                                alarm(0);
+                                state = 5;
+                                if (N_local == I1)
+                                    N_local = I0;
+                                else if (N_local == I0)
+                                    N_local = I1;
+                            }
+                            else {
+                                STOP = FALSE;
+                                alarm(0);
+                                alarm(3);
+                                state = 0;
+                            }
+                        }
+                    }
+                    else
+                        state = 0;
+                    break;
+                default:
+                    break;
+                }
             }
         }
     }
 
-    return 0;
+    return alarmCount < 4;
 }
 
 ////////////////////////////////////////////////
@@ -337,7 +407,7 @@ int llread(unsigned char *packet)
     unsigned char data[MAX_PAYLOAD_SIZE] = {0};
     int pos = 0;
     unsigned char read_byte;
-    bool new_packet = FALSE;
+    int new_packet = FALSE;
     while (STOP == FALSE)
     {
         int bytes = read(fd, &read_byte, 1);
@@ -345,6 +415,7 @@ int llread(unsigned char *packet)
         switch (state)
         {
         case 0:
+            printf("state %d (read_byte = %02x)\n", state, read_byte);
             if (read_byte == FLAG)
                 state = 1;
             else
@@ -374,11 +445,11 @@ int llread(unsigned char *packet)
             }
             else if(N_local == 0x00 && read_byte == I1){
                 response = RR1;
-                STOP = TRUE;
+                STOP = TRUE; //Check BCC1 first
             }
             else if(N_local == 0x40 && read_byte == I0){
                 response = RR0;
-                STOP = TRUE;
+                STOP = TRUE; //Check BCC1 first
             }
             else{
                 printf("Unexpected byte. I(n) must be 0x00 or 0x40\n");
