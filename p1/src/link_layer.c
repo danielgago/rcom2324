@@ -333,33 +333,151 @@ int llread(unsigned char *packet)
     STOP = FALSE;
     state = 0;
     unsigned char response;
+    unsigned char writer_nlocal;
     unsigned char data[MAX_PAYLOAD_SIZE] = {0};
     int pos = 0;
     unsigned char read_byte;
+    bool new_packet = FALSE;
     while (STOP == FALSE)
     {
         int bytes = read(fd, &read_byte, 1);
-        if (N_local == 0x00)
-            state_machine_info(read_byte, &pos, data, A_SENDER, I0, A_SENDER ^ I0);
-        else if (N_local == 0x40)
-            state_machine_info(read_byte, &pos, data, A_SENDER, I1, A_SENDER ^ I1);
-    }
-    for (int i = 0; i < pos; i++)
-    {
-        packet[i] = data[i];
-    }
 
-    /*Lazy Approach, need to change this!!!*/
+        switch (state)
+        {
+        case 0:
+            if (read_byte == FLAG)
+                state = 1;
+            else
+                state = 0;
+            break;
+        case 1:
+            if (read_byte == A_SENDER)
+                state = 2;
+            else{
+                printf("Unexpected byte. Are you not the sender?\n");
+                if(N_local == 0x00)
+                    response = REJ1;
+                else if(N_local == 0x40)
+                    response = REJ0;
+                STOP = TRUE;
+            }
+            break;
+        case 2:
+            
+            if(N_local == 0x00 && read_byte == I0){
+                writer_nlocal = I0;
+                state = 3;
+            }
+            else if(N_local == 0x40 && read_byte == I1){
+                writer_nlocal = I1;
+                state = 3;
+            }
+            else if(N_local == 0x00 && read_byte == I1){
+                response = RR1;
+                STOP = TRUE;
+            }
+            else if(N_local == 0x40 && read_byte == I0){
+                response = RR0;
+                STOP = TRUE;
+            }
+            else{
+                printf("Unexpected byte. I(n) must be 0x00 or 0x40\n");
+                if(N_local == 0x00)
+                    response = REJ1;
+                else if(N_local == 0x40)
+                    response = REJ0;
+                STOP = TRUE;
+            }
+            
+            break;
+        case 3:
+            if (read_byte == A_SENDER ^ writer_nlocal)
+                state = 4;
+            else {
+                printf("Error in BCC1\n");
+                if(N_local == 0x00)
+                    response = REJ1;
+                else if(N_local == 0x40)
+                    response = REJ0;
+                STOP = TRUE;
+                }
+            break;
+        case 4:
+            if (read_byte == FLAG)
+            {
+                unsigned char destuf[MAX_PAYLOAD_SIZE] = {0};
+                int a = 0, b = 0;
+                while (a < pos)
+                {
+                    if (data[a] == ESC)
+                    {
+                        a++;
+                        if (data[a] == 0x5E)
+                        {
+                            destuf[b] = 0x7E;
+                        }
+                        else if (data[a] == 0x5D)
+                        {
+                            destuf[b] = ESC;
+                        }
+                    }
+                    else
+                    {
+                        destuf[b] = data[a];
+                    }
+                    b++;
+                    a++;
+                }
+                unsigned char bcc2 = destuf[0];
+                for (int i = 1; i < b - 1; i++)
+                {
+                    bcc2 = bcc2 ^ destuf[i];
+                }
+                if (destuf[b - 1] == bcc2)
+                {
+                    STOP = TRUE;
+                    new_packet = TRUE;
+                    for (int i = 0; i < b - 1; i++)
+                    {
+                        data[i] = destuf[i];
+                    }
+                    pos = b - 1;
+                    if(N_local == 0x00){
+                        response = RR1;
+                        N_local = 0x40;
+                    }
+                    else if(N_local == 0x40){
+                        response = RR0;
+                        N_local = 0x00;
+                    }
+                }
+                else
+                {
+                    printf("Error in BCC2\n");
+                    if(N_local == 0x00)
+                        response = REJ1;
+                    else if(N_local == 0x40)
+                        response = REJ0;
+                    pos = 0;
+                    STOP = TRUE;
+                }
+            }
+            else
+            {
+                data[pos] = read_byte;
+                pos++;
+            }
 
-    if (N_local == 0x00)
-    {
-        response = RR1;
-        N_local = 0x40;
+            break;
+        default:
+            break;
+        }
     }
-    else
-    {
-        response = RR0;
-        N_local = 0x00;
+    if (new_packet == TRUE){
+        for (int i = 0; i < pos; i++)
+        {
+            packet[i] = data[i];
+        }
     }
 
     sleep(1);
@@ -374,7 +492,7 @@ int llread(unsigned char *packet)
     int bytes = write(fd, write_buf, 5);
 
     sleep(1);
-    return 0;
+    return new_packet;
 }
 
 ////////////////////////////////////////////////
@@ -592,98 +710,6 @@ int llclose(int showStatistics)
     close(fd);
 
     return 0;
-}
-
-void state_machine_info(unsigned char curr_byte, int *pos, unsigned char data[], unsigned char A, unsigned char C, unsigned char BCC1)
-{
-    switch (state)
-    {
-    case 0:
-        if (curr_byte == FLAG)
-            state = 1;
-        else
-            state = 0;
-        break;
-    case 1:
-        if (curr_byte == FLAG)
-            state = 1;
-        else if (curr_byte == A)
-            state = 2;
-        else
-            state = 0;
-        break;
-    case 2:
-        if (curr_byte == FLAG)
-            state = 1;
-        else if (curr_byte == C)
-            state = 3;
-        else
-            state = 0;
-        break;
-    case 3:
-        if (curr_byte == FLAG)
-            state = 1;
-        else if (curr_byte == BCC1)
-            state = 4;
-        else
-            state = 0;
-        break;
-    case 4:
-        if (curr_byte == FLAG)
-        {
-            unsigned char destuf[MAX_PAYLOAD_SIZE] = {0};
-            int a = 0, b = 0;
-            while (a < *pos)
-            {
-                if (data[a] == ESC)
-                {
-                    a++;
-                    if (data[a] == 0x5E)
-                    {
-                        destuf[b] = 0x7E;
-                    }
-                    else if (data[a] == 0x5D)
-                    {
-                        destuf[b] = ESC;
-                    }
-                }
-                else
-                {
-                    destuf[b] = data[a];
-                }
-                b++;
-                a++;
-            }
-            unsigned char bcc2 = destuf[0];
-            for (int i = 1; i < b - 1; i++)
-            {
-                bcc2 = bcc2 ^ destuf[i];
-            }
-            if (destuf[b - 1] == bcc2)
-            {
-                STOP = TRUE;
-                for (int i = 0; i < b - 1; i++)
-                {
-                    data[i] = destuf[i];
-                }
-                *pos = b - 1;
-            }
-            else
-            {
-                *pos = 0;
-                state = 1;
-            }
-        }
-        else
-        {
-            data[*pos] = curr_byte;
-            (*pos)++;
-        }
-
-        break;
-    default:
-        break;
-    }
 }
 
 void write_state_machine(int curr_byte, unsigned char A, unsigned char C, unsigned char BCC1)

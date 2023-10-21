@@ -125,10 +125,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         unsigned char rx_data_packet[MAX_PAYLOAD_SIZE];
 
-        while (1)
+        while (TRUE)
         {
             printf("Hey!\n");
-            llread(rx_data_packet);
+            bool new_packet = llread(rx_data_packet);
+            if(!new_packet)
+                continue;
             for (int i = 0; i < 10; i++)
             {
                 printf("%u ", rx_data_packet[i]);
