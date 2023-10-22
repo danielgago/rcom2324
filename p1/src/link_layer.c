@@ -16,6 +16,8 @@
 
 LinkLayerRole linkLayerRole;
 struct termios oldtio;
+int nRetransmissions = 3;
+int timeout = 4;
 
 int state = 0;
 unsigned char N_local = 0x00;
@@ -75,6 +77,8 @@ int llopen(LinkLayer connectionParameters)
     int success = FALSE;
     unsigned char write_buf[5] = {0};
     linkLayerRole = connectionParameters.role;
+    nRetransmissions = connectionParameters.nRetransmissions;
+    timeout = connectionParameters.timeout;
     switch (linkLayerRole)
     {
     case LlTx:;
@@ -87,16 +91,14 @@ int llopen(LinkLayer connectionParameters)
 
         (void)signal(SIGALRM, alarmHandler);
 
-        while (alarmCount < 4 && state != 5)
+        while (alarmCount < nRetransmissions && state != 5)
         {
             if (alarmEnabled == FALSE)
             {
                 STOP = FALSE;
                 int bytes = write(fd, write_buf, 5);
-                alarm(3);
+                alarm(timeout);
                 alarmEnabled = TRUE;
-
-                sleep(1);
 
                 unsigned char read_byte;
                 while (STOP == FALSE)
@@ -202,8 +204,6 @@ int llopen(LinkLayer connectionParameters)
             }
         }
 
-        sleep(1);
-
         write_buf[0] = FLAG;
         write_buf[1] = A_RECEIVER;
         write_buf[2] = UA;
@@ -224,6 +224,7 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
+    sleep(1);
     printf("llwrite - Nlocal %d\n", N_local);
     
     printf("bufSize = %d\n", bufSize);
@@ -298,14 +299,14 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     (void)signal(SIGALRM, alarmHandler);
 
-    while (alarmCount < 4 && state != 5)
+    while (alarmCount < nRetransmissions && state != 5)
     {
         if (alarmEnabled == FALSE)
         {
             STOP = FALSE;
             printf("j = %d\n", j);
             int bytes = write(fd, write_buf, j+1);
-            alarm(3);
+            alarm(timeout);
             alarmEnabled = TRUE;
 
             unsigned char read_byte;
@@ -376,7 +377,7 @@ int llwrite(const unsigned char *buf, int bufSize)
                             else {
                                 STOP = FALSE;
                                 alarm(0);
-                                alarm(3);
+                                alarm(timeout);
                                 state = 0;
                             }
                         }
@@ -391,7 +392,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         }
     }
 
-    return alarmCount < 4;
+    return alarmCount < nRetransmissions;
 }
 
 ////////////////////////////////////////////////
@@ -399,6 +400,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+    sleep(1);
     printf("llread - Nlocal %d\n", N_local);
     STOP = FALSE;
     state = 0;
@@ -551,7 +553,6 @@ int llread(unsigned char *packet)
         }
     }
 
-    sleep(1);
 
     unsigned char write_buf[5] = {0};
     write_buf[0] = FLAG;
@@ -561,8 +562,6 @@ int llread(unsigned char *packet)
     write_buf[4] = FLAG;
 
     int bytes = write(fd, write_buf, 5);
-
-    sleep(1);
     return new_packet;
 }
 
@@ -588,16 +587,15 @@ int llclose(int showStatistics)
 
         (void)signal(SIGALRM, alarmHandler);
 
-        while (alarmCount < 4 && state != 5)
+        while (alarmCount < nRetransmissions && state != 5)
         {
             if (alarmEnabled == FALSE)
             {
                 STOP = FALSE;
                 int bytes = write(fd, write_buf, 5);
-                alarm(3);
+                alarm(timeout);
                 alarmEnabled = TRUE;
 
-                sleep(1);
 
                 unsigned char read_byte;
                 while (STOP == FALSE)

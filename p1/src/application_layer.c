@@ -81,7 +81,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         // Data packets
         fseek(input_file, 0, SEEK_SET);
-        unsigned char data[256];
+        unsigned char data[MAX_BUF_SIZE];
         int bytes_read;
 
         while ((bytes_read = fread(data, 1, sizeof(data), input_file)) > 0)
@@ -143,11 +143,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         unsigned char rx_data_packet[MAX_PAYLOAD_SIZE];
 
         while (TRUE)
-        {
+        {   
             printf("Hey!\n");
-            int new_packet = llread(rx_data_packet);
-            if(new_packet == FALSE)
-                continue;
+            while(llread(rx_data_packet) != TRUE) printf("Packet is NOT gonna be written");
+            printf("Packet is gonna be written");
             for (int i = 0; i < 10; i++)
             {
                 printf("%u ", rx_data_packet[i]);
