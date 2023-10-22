@@ -96,14 +96,14 @@ int llopen(LinkLayer connectionParameters)
             if (alarmEnabled == FALSE)
             {
                 STOP = FALSE;
-                int bytes = write(fd, write_buf, 5);
+                write(fd, write_buf, 5);
                 alarm(timeout);
                 alarmEnabled = TRUE;
 
                 unsigned char read_byte;
                 while (STOP == FALSE)
                 {
-                    int bytes = read(fd, &read_byte, 1);
+                    read(fd, &read_byte, 1);
                     switch (state)
                     {
                     case 0:
@@ -131,7 +131,7 @@ int llopen(LinkLayer connectionParameters)
                     case 3:
                         if (read_byte == FLAG)
                             state = 1;
-                        else if (read_byte == A_RECEIVER ^ UA)
+                        else if (read_byte == (A_RECEIVER ^ UA))
                             state = 4;
                         else
                             state = 0;
@@ -159,7 +159,7 @@ int llopen(LinkLayer connectionParameters)
         unsigned char read_byte;
         while (STOP == FALSE)
         {
-            int bytes = read(fd, &read_byte, 1);
+            read(fd, &read_byte, 1);
             switch (state)
             {
             case 0:
@@ -187,7 +187,7 @@ int llopen(LinkLayer connectionParameters)
             case 3:
                 if (read_byte == FLAG)
                     state = 1;
-                else if (read_byte == A_SENDER ^ SET)
+                else if (read_byte == (A_SENDER ^ SET))
                     state = 4;
                 else
                     state = 0;
@@ -210,7 +210,7 @@ int llopen(LinkLayer connectionParameters)
         write_buf[3] = A_RECEIVER ^ UA;
         write_buf[4] = FLAG;
 
-        int bytes = write(fd, write_buf, 5);
+        write(fd, write_buf, 5);
 
         break;
     default:
@@ -305,7 +305,7 @@ int llwrite(const unsigned char *buf, int bufSize)
         {
             STOP = FALSE;
             printf("j = %d\n", j);
-            int bytes = write(fd, write_buf, j+1);
+            write(fd, write_buf, j+1);
             alarm(timeout);
             alarmEnabled = TRUE;
 
@@ -314,7 +314,7 @@ int llwrite(const unsigned char *buf, int bufSize)
             while (STOP == FALSE)
             {
 
-                int bytes = read(fd, &read_byte, 1);
+                read(fd, &read_byte, 1);
 
                 switch (state)
                 {
@@ -345,7 +345,7 @@ int llwrite(const unsigned char *buf, int bufSize)
                 case 3:
                     if (read_byte == FLAG)
                         state = 1;
-                    else if (read_byte == A_RECEIVER ^ control)
+                    else if (read_byte == (A_RECEIVER ^ control))
                         state = 4;
                     else
                         state = 0;
@@ -412,7 +412,7 @@ int llread(unsigned char *packet)
     int new_packet = FALSE;
     while (STOP == FALSE)
     {
-        int bytes = read(fd, &read_byte, 1);
+        read(fd, &read_byte, 1);
 
         switch (state)
         {
@@ -464,7 +464,7 @@ int llread(unsigned char *packet)
             
             break;
         case 3:
-            if (read_byte == A_SENDER ^ writer_nlocal)
+            if (read_byte == (A_SENDER ^ writer_nlocal))
                 state = 4;
             else {
                 printf("Error in BCC1\n");
@@ -561,7 +561,7 @@ int llread(unsigned char *packet)
     write_buf[3] = A_RECEIVER ^ response;
     write_buf[4] = FLAG;
 
-    int bytes = write(fd, write_buf, 5);
+    write(fd, write_buf, 5);
     return new_packet;
 }
 
@@ -592,7 +592,7 @@ int llclose(int showStatistics)
             if (alarmEnabled == FALSE)
             {
                 STOP = FALSE;
-                int bytes = write(fd, write_buf, 5);
+                write(fd, write_buf, 5);
                 alarm(timeout);
                 alarmEnabled = TRUE;
 
@@ -600,7 +600,7 @@ int llclose(int showStatistics)
                 unsigned char read_byte;
                 while (STOP == FALSE)
                 {
-                    int bytes = read(fd, &read_byte, 1);
+                    read(fd, &read_byte, 1);
                     switch (state)
                     {
                     case 0:
@@ -628,7 +628,7 @@ int llclose(int showStatistics)
                     case 3:
                         if (read_byte == FLAG)
                             state = 1;
-                        else if (read_byte == A_RECEIVER ^ DISC)
+                        else if (read_byte == (A_RECEIVER ^ DISC))
                             state = 4;
                         else
                             state = 0;
@@ -662,7 +662,7 @@ int llclose(int showStatistics)
         unsigned char read_byte;
         while (STOP == FALSE)
         {
-            int bytes = read(fd, &read_byte, 1);
+            read(fd, &read_byte, 1);
             switch (state)
             {
             case 0:
@@ -690,7 +690,7 @@ int llclose(int showStatistics)
             case 3:
                 if (read_byte == FLAG)
                     state = 1;
-                else if (read_byte == A_SENDER ^ DISC)
+                else if (read_byte == (A_SENDER ^ DISC))
                     state = 4;
                 else
                     state = 0;
@@ -720,7 +720,7 @@ int llclose(int showStatistics)
 
         while (STOP == FALSE)
         {
-            int bytes = read(fd, &read_byte, 1);
+            read(fd, &read_byte, 1);
             switch (state)
             {
             case 0:
@@ -748,7 +748,7 @@ int llclose(int showStatistics)
             case 3:
                 if (read_byte == FLAG)
                     state = 1;
-                else if (read_byte == A_SENDER ^ UA)
+                else if (read_byte == (A_SENDER ^ UA))
                     state = 4;
                 else
                     state = 0;

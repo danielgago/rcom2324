@@ -5,6 +5,7 @@
 #include "link_layer.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -86,7 +87,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         while ((bytes_read = fread(data, 1, sizeof(data), input_file)) > 0)
         {
-            unsigned char *tx_data_packet = (char *)malloc(3 + bytes_read);
+            unsigned char *tx_data_packet = (unsigned char *)malloc(3 + bytes_read);
             int tx_data_packet_pos = 0;
 
             tx_data_packet[tx_data_packet_pos++] = 1;
@@ -158,7 +159,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 printf("Hey2!\n");
                 rx_data_size = (rx_data_packet[1] << 8) | rx_data_packet[2];
                 size_t bytes_written = fwrite(&rx_data_packet[3], sizeof(char), rx_data_size, output_file);
-                printf("Bytes written = %d\n", bytes_written);
+                printf("Bytes written = %ld\n", bytes_written);
             }
             else if (rx_data_packet[0] == 3)
                 break;
