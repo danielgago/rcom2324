@@ -224,10 +224,7 @@ int llopen(LinkLayer connectionParameters)
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize)
 {
-    sleep(1);
-    printf("llwrite - Nlocal %d\n", N_local);
-    
-    printf("bufSize = %d\n", bufSize);
+    //sleep(1);
     alarmCount = 0;
     state = 0;
     alarmEnabled = FALSE;
@@ -291,12 +288,6 @@ int llwrite(const unsigned char *buf, int bufSize)
     write_buf[j] = FLAG;
     j++;
 
-    for (int i = 0; i < 10; i++)
-    {
-        printf("%u ", write_buf[i]);
-    }
-    printf("\n");
-
     (void)signal(SIGALRM, alarmHandler);
 
     while (alarmCount < nRetransmissions && state != 5)
@@ -304,7 +295,6 @@ int llwrite(const unsigned char *buf, int bufSize)
         if (alarmEnabled == FALSE)
         {
             STOP = FALSE;
-            printf("j = %d\n", j);
             write(fd, write_buf, j+1);
             alarm(timeout);
             alarmEnabled = TRUE;
@@ -400,8 +390,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    sleep(1);
-    printf("llread - Nlocal %d\n", N_local);
+    //sleep(1);
     STOP = FALSE;
     state = 0;
     unsigned char response;
@@ -417,7 +406,6 @@ int llread(unsigned char *packet)
         switch (state)
         {
         case 0:
-            printf("state %d (read_byte = %02x)\n", state, read_byte);
             if (read_byte == FLAG)
                 state = 1;
             else
@@ -427,7 +415,7 @@ int llread(unsigned char *packet)
             if (read_byte == A_SENDER)
                 state = 2;
             else{
-                printf("Unexpected byte. Are you not the sender?\n");
+                printf("UNEXPECTED BYTE READ. EXPECTED A_SENDER\n");
                 if(N_local == 0x00)
                     response = REJ1;
                 else if(N_local == 0x40)
@@ -570,7 +558,7 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
-    printf("llclose\n");
+    printf("Starting closing procedures...\n");
     state = 0;
     alarmCount = 0;
     alarmEnabled = FALSE;
@@ -778,5 +766,5 @@ int llclose(int showStatistics)
 
     close(fd);
 
-    return 0;
+    return alarmCount < nRetransmissions;
 }
