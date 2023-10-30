@@ -10,13 +10,14 @@
 #include <termios.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/time.h>
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
 LinkLayerRole linkLayerRole;
 struct termios oldtio;
-int nRetransmissions = 3;
+int maxNReTransmissions = 3;
 int timeout = 4;
 
 int state = 0;
@@ -26,15 +27,26 @@ int fd;
 volatile int STOP = FALSE;
 
 int alarmEnabled = FALSE;
-int alarmCount = 0;
+int nReTransmissions = 0;
+
+//Statistics
+int totalAlarms = 0;
+int totalRejects = 0;
+int totalReTransmissions = 0;
+int totalBytesSent = 0;
+int totalDataBytesReceived = 0;
+struct timeval begin, end;
 
 void alarmHandler(int signal)
 {
     alarmEnabled = FALSE;
-    alarmCount++;
+    nReTransmissions++;
+    totalAlarms++;
+    totalReTransmissions++;
+    state = 0;
     STOP = TRUE;
 
-    printf("Alarm #%d\n", alarmCount);
+    printf("Alarm activated (Retransmission #%d)\n", nReTransmissions);
 }
 
 ////////////////////////////////////////////////
@@ -42,6 +54,7 @@ void alarmHandler(int signal)
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
+    gettimeofday(&begin, 0);
     fd = open(connectionParameters.serialPort, O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
@@ -77,7 +90,7 @@ int llopen(LinkLayer connectionParameters)
     int success = FALSE;
     unsigned char write_buf[5] = {0};
     linkLayerRole = connectionParameters.role;
-    nRetransmissions = connectionParameters.nRetransmissions;
+    maxNReTransmissions = connectionParameters.nRetransmissions;
     timeout = connectionParameters.timeout;
     switch (linkLayerRole)
     {
@@ -91,7 +104,7 @@ int llopen(LinkLayer connectionParameters)
 
         (void)signal(SIGALRM, alarmHandler);
 
-        while (alarmCount < nRetransmissions && state != 5)
+        while (nReTransmissions < maxNReTransmissions && state != 5)
         {
             if (alarmEnabled == FALSE)
             {
@@ -225,10 +238,10 @@ int llopen(LinkLayer connectionParameters)
 int llwrite(const unsigned char *buf, int bufSize)
 {
     // sleep(1);
-    alarmCount = 0;
+    nReTransmissions = 0;
     state = 0;
     alarmEnabled = FALSE;
-    unsigned char write_buf[MAX_PAYLOAD_SIZE] = {0};
+    unsigned char *write_buf = (unsigned char *)malloc(bufSize * 2);
     write_buf[0] = FLAG;
     write_buf[1] = A_SENDER;
     if (N_local == I0)
@@ -290,7 +303,7 @@ int llwrite(const unsigned char *buf, int bufSize)
 
     (void)signal(SIGALRM, alarmHandler);
 
-    while (alarmCount < nRetransmissions && state != 5)
+    while (nReTransmissions < maxNReTransmissions && state != 5)
     {
         if (alarmEnabled == FALSE)
         {
@@ -349,6 +362,7 @@ int llwrite(const unsigned char *buf, int bufSize)
                             STOP = TRUE;
                             alarm(0);
                             alarmEnabled = FALSE;
+                            totalBytesSent += j;
                             state = 5;
                             if ((N_local == I0 && control == RR1) || (N_local == I1 && control == RR0))
                             {
@@ -358,13 +372,15 @@ int llwrite(const unsigned char *buf, int bufSize)
                                     N_local = I1;
                             }
                         }
-                        else if (control == REJ0 || control == REJ1){
-                             printf("Sent frame got rejected\n");
+                        else if (control == REJ0 || control == REJ1)
+                        {
                             STOP = TRUE;
                             alarm(0);
                             alarmEnabled = FALSE;
-                            alarmCount++;
+                            nReTransmissions++;
+                            totalReTransmissions++;
                             state = 0;
+                            printf("Sent frame got rejected (Retransmission #%d)\n", nReTransmissions);
                         }
                     }
                     else
@@ -376,8 +392,9 @@ int llwrite(const unsigned char *buf, int bufSize)
             }
         }
     }
+    free(write_buf);
 
-    return alarmCount < nRetransmissions;
+    return nReTransmissions < maxNReTransmissions;
 }
 
 ////////////////////////////////////////////////
@@ -390,10 +407,11 @@ int llread(unsigned char *packet)
     state = 0;
     unsigned char response;
     unsigned char writer_nlocal;
-    unsigned char data[MAX_PAYLOAD_SIZE] = {0};
     int pos = 0;
     unsigned char read_byte;
     int new_packet = FALSE;
+    int escapeRead = FALSE;
+    unsigned char bcc2 = 0x00;
     while (STOP == FALSE)
     {
         read(fd, &read_byte, 1);
@@ -436,42 +454,11 @@ int llread(unsigned char *packet)
         case 4:
             if (read_byte == FLAG)
             {
-                unsigned char destuf[MAX_PAYLOAD_SIZE] = {0};
-                int a = 0, b = 0;
-                while (a < pos)
+                if (bcc2 == 0x00)
                 {
-                    if (data[a] == ESC)
-                    {
-                        a++;
-                        if (data[a] == 0x5E)
-                        {
-                            destuf[b] = 0x7E;
-                        }
-                        else if (data[a] == 0x5D)
-                        {
-                            destuf[b] = ESC;
-                        }
-                    }
-                    else
-                    {
-                        destuf[b] = data[a];
-                    }
-                    b++;
-                    a++;
-                }
-                unsigned char bcc2 = destuf[0];
-                for (int i = 1; i < b - 1; i++)
-                {
-                    bcc2 = bcc2 ^ destuf[i];
-                }
-                if (destuf[b - 1] == bcc2)
-                {
+                    packet[pos - 1] = '\0';
                     STOP = TRUE;
-                    for (int i = 0; i < b - 1; i++)
-                    {
-                        data[i] = destuf[i];
-                    }
-                    pos = b - 1;
+
                     if (N_local == I0 && writer_nlocal == I0)
                     {
                         new_packet = TRUE;
@@ -504,22 +491,35 @@ int llread(unsigned char *packet)
                     STOP = TRUE;
                 }
             }
+            else if (escapeRead)
+            {
+                if (read_byte == 0x5D)
+                {
+                    packet[pos] = ESC;
+                    bcc2 = bcc2 ^ ESC;
+                }
+                else if (read_byte == 0x5E)
+                {
+                    packet[pos] = FLAG;
+                    bcc2 = bcc2 ^ FLAG;
+                }
+                escapeRead = FALSE;
+                pos++;
+            }
+            else if (read_byte == ESC)
+            {
+                escapeRead = TRUE;
+            }
             else
             {
-                data[pos] = read_byte;
+                packet[pos] = read_byte;
+                bcc2 = bcc2 ^ read_byte;
                 pos++;
             }
 
             break;
         default:
             break;
-        }
-    }
-    if (new_packet == TRUE)
-    {
-        for (int i = 0; i < pos; i++)
-        {
-            packet[i] = data[i];
         }
     }
 
@@ -541,7 +541,7 @@ int llclose(int showStatistics)
 {
     printf("Starting closing procedures...\n");
     state = 0;
-    alarmCount = 0;
+    nReTransmissions = 0;
     alarmEnabled = FALSE;
     STOP = FALSE;
     unsigned char write_buf[5] = {0};
@@ -556,7 +556,7 @@ int llclose(int showStatistics)
 
         (void)signal(SIGALRM, alarmHandler);
 
-        while (alarmCount < nRetransmissions && state != 5)
+        while (nReTransmissions < maxNReTransmissions && state != 5)
         {
             if (alarmEnabled == FALSE)
             {
@@ -682,7 +682,7 @@ int llclose(int showStatistics)
 
         write(fd, write_buf, 5);
         state = 0;
-        alarmCount = 0;
+        nReTransmissions = 0;
         alarmEnabled = FALSE;
         STOP = FALSE;
 
@@ -744,7 +744,26 @@ int llclose(int showStatistics)
         exit(-1);
     }
 
+    gettimeofday(&end, 0);
+    long seconds = end.tv_sec - begin.tv_sec;
+    long microseconds = end.tv_usec - begin.tv_usec;
+    double timeElapsed = seconds + microseconds * 1e-6;
+
+    if (showStatistics == TRUE)
+    {
+        printf("Time elapsed: %f seconds\n", timeElapsed);
+        if (linkLayerRole == LlTx)
+        {
+            printf("Total alarms activated: %d\n", totalAlarms);
+            printf("Total frame rejections: %d\n", totalReTransmissions - totalAlarms);
+            printf("Total re-transmissions: %d\n", totalReTransmissions);
+            printf("Total bytes sent: %d bytes\n", totalBytesSent);
+        }
+        else if (linkLayerRole == LlRx)
+            printf("Total data bytes received: %d bytes\n", totalDataBytesReceived);
+    }
+
     close(fd);
 
-    return alarmCount < nRetransmissions;
+    return nReTransmissions < maxNReTransmissions;
 }
