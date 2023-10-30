@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+extern int totalDataBytesReceived;
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
@@ -73,11 +75,12 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             printf("APPLICATION: START PACKET TIMEOUT. CLOSING...\n");
             break;
         }
+        free(tx_control_packet);
         printf("Start packet successfuly sent.\n");
 
         // Data packets
         fseek(input_file, 0, SEEK_SET);
-        unsigned char data[MAX_BUF_SIZE];
+        unsigned char data[MAX_PAYLOAD_SIZE];
         int bytes_read;
         int tx_packet_counter = 1;
         while ((bytes_read = fread(data, 1, sizeof(data), input_file)) > 0)
@@ -100,6 +103,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 timeout = TRUE;
                 break;
             }
+            free(tx_data_packet);
             printf("Data packet #%d successfuly sent.\n", tx_packet_counter);
             tx_packet_counter++;
         }
@@ -116,7 +120,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         printf("End packet successfuly sent.\n");
 
-        if(llclose(0)==FALSE){
+        if(llclose(TRUE)==FALSE){
             printf("Failed to close connection");
         } else{
             printf("Success.\n");
@@ -129,7 +133,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         while(llread(rx_control_packet) == FALSE) {
             printf("APPLICATION: START PACKET NOT ACCEPTED. TRYING AGAIN...\n");
-            break;
         };
         printf("Start packet successfuly received.\n");
         unsigned char L1 = rx_control_packet[2];
@@ -147,7 +150,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             exit(-1);
         }
 
-        unsigned char rx_data_packet[MAX_PAYLOAD_SIZE];
+        unsigned char rx_data_packet[MAX_PAYLOAD_SIZE + 3];
         int rx_packet_counter = 1;
         while (TRUE)
         {   
@@ -160,6 +163,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 rx_data_size = (rx_data_packet[1] << 8) | rx_data_packet[2];
                 fwrite(&rx_data_packet[3], sizeof(char), rx_data_size, output_file);
                 printf("Data packet #%d successfuly received and written to file.\n", rx_packet_counter);
+                totalDataBytesReceived += rx_data_size;
                 rx_packet_counter++;
             }
             else if (rx_data_packet[0] == 3){
@@ -169,7 +173,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         if(fclose(output_file))
             perror("File not closed correctly");
-        if(llclose(0)==FALSE){
+        if(llclose(TRUE) == FALSE){
             printf("Failed to close connection\n");
         }
         else{
