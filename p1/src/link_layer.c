@@ -364,6 +364,7 @@ int llwrite(const unsigned char *buf, int bufSize)
                             alarm(0);
                             alarmEnabled = FALSE;
                             alarmCount++;
+                            state = 0;
                         }
                     }
                     else
