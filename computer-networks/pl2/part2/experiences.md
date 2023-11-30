@@ -3,6 +3,7 @@
 ## Experience 1 - Configure an IP Network
 
 ### Steps
+
 #### 1. Disconnect the switch from netlab (PY.1). Connect tuxY3 and tuxY4 to the switch
 
 ![image](imgs/i1.png)
@@ -55,9 +56,9 @@ ping 172.16.20.254
 
 #### 7. Start Wireshark in tuxY3.eth0 and start capturing packets
 
-- Start **Wireshark**
-
-- Double click eth0
+- tuxY3:
+    - Start **Wireshark**
+    - Double click eth0
 
 #### 8. In tuxY3, ping tuxY4 for a few seconds
 
@@ -69,17 +70,201 @@ ping 172.16.20.254
 
 #### 10. Save the log and study it at home
 
-- Available [here](log1.pcapng).
+- Available [here](logs/log1.pcapng).
 
 ### Questions
 
 #### What are the commands required to configure this experience?
 
-
 #### What are the ARP packets and what are they used for?
+
 #### What are the MAC and IP addresses of ARP packets and why?
+
 #### What packets does the ping command generate?
+
 #### What are the MAC and IP addresses of the ping packets?
+
 #### How to determine if a receiving Ethernet frame is ARP, IP, ICMP?
+
 #### How to determine the length of a receiving frame?
+
 #### What is the loopback interface and why is it important?
+
+## Experience 2 - Implement two bridges in a switch
+
+### Steps
+
+#### 1. Connect and configure tuxY2 and register its IP and MAC addresses
+
+![image](imgs/i4.png)
+
+- Configure tuxY2
+``` bash
+ifconfig eth0 up
+ifconfig eth0 172.16.21.1/24
+```
+
+#### 2. Create two bridges in the switch: bridgeY0 and bridgeY1
+
+- Mikrotik:
+```
+/interface bridge add name=bridgeY0
+/interface bridge add name=bridgeY1
+/interface bridge print
+```
+![image](imgs/i5.png)
+
+#### 3. Remove the ports where tuxY3, tuxY4 and tuxY2 are connected from the default bridge (bridge) and add them the corresponding ports to bridgeY0 and bridgeY1
+
+- Mikrotik:
+```
+/interface bridge port remove [find interface=ether1]
+/interface bridge port remove [find interface=ether2]
+/interface bridge port remove [find interface=ether4]
+/interface bridge port add bridge=bridgeY0 interface=ether1
+/interface bridge port add bridge=bridgeY0 interface=ether2
+/interface bridge port add bridge=bridgeY1 interface=ether4
+/interface bridge port print brief
+```
+
+![image](imgs/i6.png)
+
+#### 4. Start the capture at tuxY3.eth0
+
+- tuxY3:
+    - Start **Wireshark**
+    - Double click eth0
+
+#### 5. In tuxY3, ping tuxY4 and then ping tuxY2
+
+- tuxY3:
+``` bash
+ping 172.16.20.254
+ping 172.16.21.1
+```
+
+#### 6. Stop the capture and save the log
+
+#### 7. Start new captures in tuxY2.eth0, tuxY3.eth0, tuxY4.eth0
+#### 8. In tuxY3, do ping broadcast for a few seconds
+
+- tuxY2/tuxY3/tuxY4:
+    - Start **Wireshark**
+    - Double click eth0
+
+- tuxY3:
+``` bash
+ping -b 172.16.21.255
+```
+
+#### 9. Observe the results, stop the captures and save the logs
+
+#### 10. Repeat steps 7, 8 and 9, but now ping broadcast in tuxY2 (ping -b 172.16.Y1.255)
+
+- tuxY2/tuxY3/tuxY4:
+    - Start **Wireshark**
+    - Double click eth0
+
+- tuxY2:
+``` bash
+ping -b 172.16.21.255
+```
+
+### Questions
+
+#### How to configure bridgeY0?
+
+#### How many broadcast domains are there? How can you conclude it from the logs?
+
+## Experience 3 - Configure a Router in Linux
+
+### Steps
+
+#### 1. Transform tuxY4 (Linux) into a router
+
+
+
+##### Configure also tuxY4.eth1 and add it to bridgeY1
+
+![image](imgs/i7.png)
+
+- Configure tuxY4.eth1
+``` bash
+ifconfig eth1 up
+ifconfig eth1 172.16.21.253/24
+```
+
+- Mikrotik
+```
+/interface bridge port remove [find interface=ether3]
+/interface bridge port add bridge=bridgeY1 interface=ether3
+```
+
+##### Enable IP forwarding
+``` bash
+sysctl net.ipv4.ip_forward=1
+```
+
+##### Disable ICMP 
+echo-ignore-broadcast
+``` bash
+sysctl net.ipv4.icmp_echo_ignore_broadcasts=0
+```
+
+#### 2. Observe MAC addresses and IP addresses in tuxY4.eth0 and tuxY4.eth1
+
+#### 2. Reconfigure tuxY3 and tuxY2 so that each of them can reach the other
+
+#### 2. Observe the routes available at the 3 tuxes (route -n)
+
+tuxY2:
+![image](imgs/i8.png)
+
+![image](imgs/i9.png)
+
+![image](imgs/i10.png)
+
+#### 2. Start capture at tuxY3
+
+- tuxY3:
+    - Start **Wireshark**
+    - Double click eth0
+
+#### From tuxY3, ping the other network interfaces (172.16.Y0.254, 172.16.Y1.253, 172.16.Y1.1) and verify if there is connectivity
+
+- tuxY3:
+``` bash
+ping 172.16.20.254
+ping 172.16.21.253
+ping 172.16.21.1
+```
+
+#### Stop the capture and save the logs
+
+#### Start capture in tuxY4; use 2 instances of Wireshark, one per network interface
+
+- tuxY4:
+    - Start **Wireshark**
+    - Double click eth0
+    - Start another instance of **Wireshark**
+    - Double click eth1
+
+#### Clean the ARP tables in the 3 tuxes
+
+#### In tuxY3, ping tuxY2 for a few seconds.
+
+#### Stop captures in tuxY4 and save logs
+
+### Questions
+
+#### What are the commands required to configure this experience?
+
+#### What routes are there in the tuxes? What are their meaning?
+
+#### What information does an entry of the forwarding table contain?
+
+#### What ARP messages, and associated MAC addresses, are observed and why?
+
+#### What ICMP packets are observed and why?
+
+#### What are the IP and MAC addresses associated to ICMP packets and why? 
