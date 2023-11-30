@@ -182,15 +182,13 @@ ping -b 172.16.21.255
 
 #### 1. Transform tuxY4 (Linux) into a router
 
-
-
 ##### Configure also tuxY4.eth1 and add it to bridgeY1
 
 ![image](imgs/i7.png)
 
 - Configure tuxY4.eth1
 ``` bash
-ifconfig eth1 up
+ifconfig eth1 down
 ifconfig eth1 172.16.21.253/24
 ```
 
@@ -213,24 +211,38 @@ sysctl net.ipv4.icmp_echo_ignore_broadcasts=0
 
 #### 2. Observe MAC addresses and IP addresses in tuxY4.eth0 and tuxY4.eth1
 
-#### 2. Reconfigure tuxY3 and tuxY2 so that each of them can reach the other
+![image](imgs/i11.png)
 
-#### 2. Observe the routes available at the 3 tuxes (route -n)
+#### 3. Reconfigure tuxY3 and tuxY2 so that each of them can reach the other
+
+No tuxY2:
+```
+route add -net 172.16.21.0/24 gw 172.16.20.254
+```
+
+No tuxY2:
+```
+route add -net 172.16.20.0/24 gw 172.16.21.253
+```
+
+#### 4. Observe the routes available at the 3 tuxes (route -n)
 
 tuxY2:
 ![image](imgs/i8.png)
 
+tuxY3:
 ![image](imgs/i9.png)
 
+tuxY4:
 ![image](imgs/i10.png)
 
-#### 2. Start capture at tuxY3
+#### 5. Start capture at tuxY3
 
 - tuxY3:
     - Start **Wireshark**
     - Double click eth0
 
-#### From tuxY3, ping the other network interfaces (172.16.Y0.254, 172.16.Y1.253, 172.16.Y1.1) and verify if there is connectivity
+#### 6. From tuxY3, ping the other network interfaces (172.16.Y0.254, 172.16.Y1.253, 172.16.Y1.1) and verify if there is connectivity
 
 - tuxY3:
 ``` bash
@@ -239,9 +251,9 @@ ping 172.16.21.253
 ping 172.16.21.1
 ```
 
-#### Stop the capture and save the logs
+#### 7. Stop the capture and save the logs
 
-#### Start capture in tuxY4; use 2 instances of Wireshark, one per network interface
+#### 8. Start capture in tuxY4; use 2 instances of Wireshark, one per network interface
 
 - tuxY4:
     - Start **Wireshark**
@@ -249,11 +261,21 @@ ping 172.16.21.1
     - Start another instance of **Wireshark**
     - Double click eth1
 
-#### Clean the ARP tables in the 3 tuxes
+#### 9. Clean the ARP tables in the 3 tuxes
 
-#### In tuxY3, ping tuxY2 for a few seconds.
+```
+arp -a
+arp -d [INSERT IP HERE]
+```
 
-#### Stop captures in tuxY4 and save logs
+#### 10. In tuxY3, ping tuxY2 for a few seconds.
+
+- tuxY3:
+``` bash
+ping 172.16.21.1
+```
+
+#### 11. Stop captures in tuxY4 and save logs
 
 ### Questions
 
