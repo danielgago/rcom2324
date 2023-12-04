@@ -50,8 +50,9 @@ ping 172.16.20.254
 #### 6. Delete ARP table entries in tuxY3 (arp -d ipaddress)
 
 - tuxY3:
-``` bash
-ping 172.16.20.254
+```
+arp -a
+arp -d [INSERT IP HERE]
 ```
 
 #### 7. Start Wireshark in tuxY3.eth0 and start capturing packets

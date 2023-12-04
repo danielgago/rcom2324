@@ -8,17 +8,15 @@ SRC = src/
 INCLUDE = include/
 BIN = bin/
 
+TEST_STRING = TEST
+
 # Targets
 .PHONY: all
-all: $(BIN)/download 
+all: download 
 
-$(BIN)/download: $(SRC)/*.c
+download: $(SRC)/*.c
 	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
-
-.PHONY: run
-run: $(BIN)/download
-	./$(BIN)/download Hello
 
 .PHONY: clean
 clean:
-	rm -f $(BIN)/main
+	rm -f download
