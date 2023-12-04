@@ -118,13 +118,13 @@ ifconfig eth0 172.16.21.1/24
 
 - Mikrotik:
 ```
+/interface bridge port print brief
 /interface bridge port remove [find interface=ether1]
 /interface bridge port remove [find interface=ether2]
 /interface bridge port remove [find interface=ether4]
 /interface bridge port add bridge=bridgeY0 interface=ether1
 /interface bridge port add bridge=bridgeY0 interface=ether2
 /interface bridge port add bridge=bridgeY1 interface=ether4
-/interface bridge port print brief
 ```
 
 ![image](imgs/i6.png)
@@ -186,7 +186,7 @@ ping -b 172.16.21.255
 
 ![image](imgs/i7.png)
 
-- Configure tuxY4.eth1
+- Configure tuxY4.eth1:
 ``` bash
 ifconfig eth1 down
 ifconfig eth1 172.16.21.253/24
