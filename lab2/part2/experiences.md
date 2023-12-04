@@ -155,7 +155,7 @@ ping 172.16.21.1
 
 - tuxY3:
 ``` bash
-ping -b 172.16.21.255
+ping -b 172.16.20.255
 ```
 
 #### 9. Observe the results, stop the captures and save the logs
@@ -200,12 +200,15 @@ ifconfig eth1 172.16.21.253/24
 ```
 
 ##### Enable IP forwarding
+
+tuxY4:
 ``` bash
 sysctl net.ipv4.ip_forward=1
 ```
 
-##### Disable ICMP 
-echo-ignore-broadcast
+##### Disable ICMP echo-ignore-broadcast
+
+tuxY4:
 ``` bash
 sysctl net.ipv4.icmp_echo_ignore_broadcasts=0
 ```
@@ -216,12 +219,12 @@ sysctl net.ipv4.icmp_echo_ignore_broadcasts=0
 
 #### 3. Reconfigure tuxY3 and tuxY2 so that each of them can reach the other
 
-No tuxY2:
+tuxY3:
 ```
 route add -net 172.16.21.0/24 gw 172.16.20.254
 ```
 
-No tuxY2:
+tuxY2:
 ```
 route add -net 172.16.20.0/24 gw 172.16.21.253
 ```
@@ -291,3 +294,73 @@ ping 172.16.21.1
 #### What ICMP packets are observed and why?
 
 #### What are the IP and MAC addresses associated to ICMP packets and why? 
+
+## Experience 3 - Configure a Commercial Router and Implement NAT
+
+### Steps
+
+#### 1. Connect ether1 of Rc to the lab network on PY.1 (with NAT enabled by default) and ether2 of Rc to a port on bridgeY1. Configure the IP addresses of Rc through the router serial console
+
+![image](imgs/i12.png)
+
+- Mikrotik Switch:
+```
+/interface bridge port remove [find interface=ether5]
+/interface bridge port add bridge=bridgeY1 interface=ether5
+```
+
+![image](imgs/i13.png)
+
+- Mikrotik Router:
+```
+/system reset-configuration
+y
+
+/ip address add address=172.16.2.29/24 interface=ether1 
+/ip address add address=172.16.21.254/24 interface=ether2
+```
+
+#### 2. Verify routes
+
+##### tuxY4 as default router of tuxY3;
+
+tuxY3:
+```
+route add default gw 172.16.Y0.254
+```
+
+##### Rc as default router for tuxY2 and tuxY4
+
+tuxY2/tuxY4:
+```
+route add default gw 172.16.Y1.254
+```
+
+##### in tuxY2 and Rc add routes for 172.16.Y0.0/24
+
+- Mikrotik Router:
+```
+ /ip route add dst-address=172.16.20.0/24 gateway=172.16.21.253
+```
+
+#### 3. Using ping commands and Wireshark, verify if tuxY3 can ping all the network interfaces of tuxY2, tuxY4 and Rc
+
+#### 4. In tuxY2
+
+##### Do the following:
+```
+sysctl net.ipv4.conf.eth0.accept_redirects=0
+sysctl net.ipv4.conf.all.accept_redirects=0
+```
+
+#####  remove the route to 172.16.Y0.0/24 via tuxY4
+
+##### In tuxY2, ping tuxY3
+
+##### Using capture at tuxY2, try to understand the path followed by ICMP ECHO and ECHO-REPLY packets (look at MAC addresses)
+
+##### In tuxY2, do traceroute tuxY3
+
+##### In tuxY2, add again the route to 172.16.Y0.0/24 via tuxY4 and do traceroute tuxY3
+
+##### Activate the acceptance of ICMP redirect at tuxY2 when there is no route to 172.16.Y0.0/24 via tuxY4 and try to understand what happens 
