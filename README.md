@@ -13,7 +13,7 @@ The strategy used for this protocol was Stop-and-Wait, implementing a communicat
 
 ## Lab 2 - Computer Networks
 
-**Description:** This assignment was divided into two parts. In the first part of the lab assignment, we developed a download application. The objective was to create a program capable of downloading files from a specified FTP server. The second part of the lab assignment focuses on configuring and studying a computer network.
+**Description:** This assignment was divided into two parts. In the first part of the lab assignment, we developed a download application which is capable of downloading files from a specified FTP server. The second part of the lab assignment focuses on configuring and studying a computer network.
 
 **Grade obtained:** ?/20
 

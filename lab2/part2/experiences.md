@@ -313,7 +313,7 @@ ping 172.16.21.1
 
 #### What are the IP and MAC addresses associated to ICMP packets and why? 
 
-## Experience 3 - Configure a Commercial Router and Implement NAT
+## Experience 4 - Configure a Commercial Router and Implement NAT
 
 ### Steps
 
@@ -359,6 +359,7 @@ route add default gw 172.16.Y1.254
 - Mikrotik Router:
 ```
  /ip route add dst-address=172.16.20.0/24 gateway=172.16.21.253
+ /ip route add dst-address=0.0.0.0/0 gateway=172.16.21.254
 ```
 
 #### 3. Using ping commands and Wireshark, verify if tuxY3 can ping all the network interfaces of tuxY2, tuxY4 and Rc
