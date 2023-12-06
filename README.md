@@ -2,20 +2,18 @@
 
 This repository contains the laboratory assignments for the Functional and Logic Programming course at the Faculty of Engineering of the University of Porto (FEUP) in the 2023/24 academic year. 
 
-Each folder (lab1 and lab2) contains the work related to each of the practical assignments. The examples folder contains some example code that was provided to us by our teachers.
+Each folder (lab1 and lab2) contains the work related to each of the assignments. The examples folder contains some code that was provided to us by our professors to aid in our work.
 
 ## Lab 1 - Data Link Protocol
 
-**Description:** This project aims to implement a data communication system that allows files to be transmitted via the RS-232 serial port.
+**Description:** This assignment aims to implement a data communication system that allows files to be transmitted via the RS-232 serial port.
 The strategy used for this protocol was Stop-and-Wait, implementing a communication protocol that would allow the file to be sent both in normal situations and in situations of disconnection and noise causing interference in the data sent and received.
 
 **Grade obtained:** ?/20
 
 ## Lab 2 - Computer Networks
 
-### Part 1 - Development of a download application
-
-### Part 2 - Configuration and Study of a Network
+**Description:** This assignment was divided into two parts. In the first part of the lab assignment, we developed a download application. The objective was to create a program capable of downloading files from a specified FTP server. The second part of the lab assignment focuses on configuring and studying a computer network.
 
 **Grade obtained:** ?/20
 
