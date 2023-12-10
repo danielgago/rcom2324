@@ -77,6 +77,12 @@ ping 172.16.20.254
 
 #### What are the commands required to configure this experience?
 
+First we need to reset the network configuration in Mikrotik:
+```
+/system reset-configuration
+y
+```
+
 #### What are the ARP packets and what are they used for?
 
 #### What are the MAC and IP addresses of ARP packets and why?
