@@ -1,5 +1,7 @@
 #include "download.h"
 
+struct FTPURL ftpURL;
+
 int containsAtSymbol(const char *str) {
     while (*str != '\0') {
         if (*str == '@') {
@@ -49,13 +51,35 @@ int newSocket(char* ip, int port) {
     return sockfd;
 }
 
+int serverResponse(int sockfd) {
+    int responseCode;
+    char responseCodeStr[4];
+    read(sockfd, &responseCodeStr, 3);
+    responseCodeStr[3] = '\0';
+    responseCode = atoi(responseCodeStr);
+    return responseCode;
+}
+
+int authentication(int sockfd) {
+    char userHandler[5+strlen(ftpURL.user)+1]; sprintf(userHandler, "user %s\n", ftpURL.user);
+    char passwordHandler[5+strlen(ftpURL.password)+1]; sprintf(passwordHandler, "pass %s\n", ftpURL.user);
+    
+    write(sockfd, userHandler, strlen(userHandler));
+    if (serverResponse(sockfd) != 331) {
+        printf("Unknown user '%s'. Abort.\n", ftpURL.user);
+        exit(-1);
+    }
+
+    write(sockfd, passwordHandler, strlen(passwordHandler));
+    return serverResponse(sockfd);
+}
+
 int main(int argc, char **argv) {
     if (argc != 2) {
         printf("Usage: ./download <URL>\n");
         return 1;
     }
     char *url = argv[1];
-    struct FTPURL ftpURL;
     int at_symbol = parseFTPURL(url, &ftpURL);
     printf("User: %s\nPassword: %s\nHost: %s\nURL Path: %s\n", ftpURL.user, ftpURL.password, ftpURL.host, ftpURL.urlPath);
     struct hostent *h;
@@ -68,6 +92,18 @@ int main(int argc, char **argv) {
     printf("IP Address : %s\n", ip);
 
     int sockfd = newSocket(ip, FTP_SERVER_PORT);
+    if (serverResponse(sockfd) != 220) {
+        printf("Error connecting to server\n");
+        exit(-1);
+    }
+
+    if(at_symbol) {
+        if (authentication(sockfd) != 230) {
+            printf("Wrong password. Abort.\n");
+            exit(-1);
+        }
+    }
+
 
     char buf[] = "Mensagem de teste na travessia da pilha TCP/IP\n";
     size_t bytes;
