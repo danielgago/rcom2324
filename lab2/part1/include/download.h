@@ -9,3 +9,10 @@
 
 #define SERVER_PORT 6000
 #define SERVER_ADDR "192.168.28.96"
+
+struct FTPURL {
+    char user[256];
+    char password[256];
+    char host[256];
+    char urlPath[256];
+};
