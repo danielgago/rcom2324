@@ -9,18 +9,18 @@ int containsAtSymbol(const char *str) {
     }
     return 0;
 }
-
-void parseFTPURL(const char *url, struct FTPURL *ftpURL) {
+// Return 1 if the string contains an @ symbol, 0 otherwise
+int parseFTPURL(const char *url, struct FTPURL *ftpURL) {
     const char *str = url;
     if (containsAtSymbol(str)) {
         sscanf(url, "ftp://%[^:]:%[^@]@%[^/]/%s", ftpURL->user, ftpURL->password, ftpURL->host, ftpURL->urlPath);
-        return;
+        return 1;
     }
     else {
         sscanf(url, "ftp://%[^/]/%s", ftpURL->host, ftpURL->urlPath);
         ftpURL->password[0] = '\0';
         ftpURL->user[0] = '\0';
-        return;
+        return 0;
     }
 }
 
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     }
     char *url = argv[1];
     struct FTPURL ftpURL;
-    parseFTPURL(url, &ftpURL);
+    int at_symbol = parseFTPURL(url, &ftpURL);
     printf("User: %s\nPassword: %s\nHost: %s\nURL Path: %s\n", ftpURL.user, ftpURL.password, ftpURL.host, ftpURL.urlPath);
     struct hostent *h;
     if ((h = gethostbyname(ftpURL.host)) == NULL) {
