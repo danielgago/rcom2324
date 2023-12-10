@@ -11,15 +11,38 @@ int containsAtSymbol(const char *str) {
     }
     return 0;
 }
+
+void getFileName(const char *urlPath) {
+    int lastSlashIndex = -1;
+    for (int i = 0; urlPath[i] != '\0'; ++i) {
+        if (urlPath[i] == '/') {
+            lastSlashIndex = i;
+        }
+    }
+
+    if (lastSlashIndex != -1) {
+        strncpy(ftpURL.pathToFile, urlPath, lastSlashIndex);
+        ftpURL.pathToFile[lastSlashIndex] = '\0';
+        strcpy(ftpURL.file, urlPath + lastSlashIndex + 1);
+    } else {
+        strcpy(ftpURL.pathToFile, urlPath);
+        ftpURL.file[0] = '\0'; // No file in the path
+    }
+}
+
 // Return 1 if the string contains an @ symbol, 0 otherwise
 int parseFTPURL(const char *url, struct FTPURL *ftpURL) {
     const char *str = url;
     if (containsAtSymbol(str)) {
-        sscanf(url, "ftp://%[^:]:%[^@]@%[^/]/%s", ftpURL->user, ftpURL->password, ftpURL->host, ftpURL->urlPath);
+        char urlPath[500];
+        sscanf(url, "ftp://%[^:]:%[^@]@%[^/]/%s", ftpURL->user, ftpURL->password, ftpURL->host, urlPath);
+        getFileName(urlPath);
         return 1;
     }
     else {
-        sscanf(url, "ftp://%[^/]/%s", ftpURL->host, ftpURL->urlPath);
+        char urlPath[500];
+        sscanf(url, "ftp://%[^/]/%s", ftpURL->host, urlPath);
+        getFileName(urlPath);
         ftpURL->password[0] = '\0';
         ftpURL->user[0] = '\0';
         return 0;
@@ -93,7 +116,7 @@ int serverResponse(int sockfd, char* response) {
                 break;
             case MULTI_LINE:
                 if (byte == '\n') {
-                    memset(response, 0, 500);
+                    memset(response, 0, 500); //We just want the last line
                     pos = 0;
                     state = BEGIN;
                 }
@@ -121,7 +144,7 @@ int authentication(int sockfd, char* user, char* password) {
     return serverResponse(sockfd, response);
 }
 
-int passiveMode(int sockfd) {
+int passiveMode(int sockfd, char* ip) {
     char response[500];
     write(sockfd, "pasv\n", 5);
     int responseCode = serverResponse(sockfd, response);
@@ -129,9 +152,10 @@ int passiveMode(int sockfd) {
         printf("Error entering passive mode. Abort.\n");
         exit(-1);
     }
-    printf("Response:\n%s\n", response);
-    int port1, port2;
-    sscanf(response, "227 Entering Passive Mode (%*d,%*d,%*d,%*d,%d,%d)\n", &port1, &port2);
+
+    int ip1, ip2, ip3, ip4, port1, port2;
+    sscanf(response, "227 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\n", &ip1, &ip2, &ip3, &ip4, &port1, &port2);
+    sprintf(ip, "%d.%d.%d.%d", ip1, ip2, ip3, ip4);
     return port1*256+port2;
 }
 
@@ -142,7 +166,7 @@ int main(int argc, char **argv) {
     }
     char *url = argv[1];
     int at_symbol = parseFTPURL(url, &ftpURL);
-    printf("User: %s\nPassword: %s\nHost: %s\nURL Path: %s\n", ftpURL.user, ftpURL.password, ftpURL.host, ftpURL.urlPath);
+    printf("User: %s\nPassword: %s\nHost: %s\nPath to File: %s\n", ftpURL.user, ftpURL.password, ftpURL.host, ftpURL.pathToFile);
     struct hostent *h;
     if ((h = gethostbyname(ftpURL.host)) == NULL) {
         herror("gethostbyname()");
@@ -174,23 +198,18 @@ int main(int argc, char **argv) {
     int filePort;
     char fileIP[16];
 
-    filePort = passiveMode(sockfd);
+    filePort = passiveMode(sockfd, fileIP);
+    printf("File IP: %s\n", fileIP);
+    printf("File port: %d\n", filePort);
 
+    int fileSockfd = newSocket(fileIP, filePort);
+    printf("Here\n");
 
-    char buf[] = "Mensagem de teste na travessia da pilha TCP/IP\n";
-    size_t bytes;
-    
-    /*send a string to the server*/
-    bytes = write(sockfd, buf, strlen(buf));
-    if (bytes > 0)
-        printf("Bytes escritos %ld\n", bytes);
-    else {
-        perror("write()");
-        exit(-1);
-    }
-
-    if (close(sockfd)<0) {
-        perror("close()");
+    char fileHandler[5+strlen(ftpURL.file)+1]; sprintf(fileHandler, "retr %s\n", ftpURL.file);
+    printf("File handler: %s\n", fileHandler);
+    write(fileSockfd, fileHandler, strlen(fileHandler));
+    if (serverResponse(fileSockfd, response) != 150) {
+        printf("File not found. Abort.\n");
         exit(-1);
     }
 

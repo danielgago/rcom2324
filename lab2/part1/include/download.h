@@ -10,10 +10,11 @@
 #define FTP_SERVER_PORT 21
 
 struct FTPURL {
-    char user[256];
-    char password[256];
-    char host[256];
-    char urlPath[256];
+    char user[500];
+    char password[500];
+    char host[500];
+    char pathToFile[500];
+    char file[500];
 };
 
 typedef enum {
