@@ -71,7 +71,7 @@ ping 172.16.20.254
 
 #### 10. Save the log and study it at home
 
-- Available [here](logs/log1.pcapng).
+- [log1.pcapng](logs/log1.pcapng)
 
 ### Questions
 
@@ -146,7 +146,10 @@ ping 172.16.21.1
 
 #### 6. Stop the capture and save the log
 
+- [log2part1.pcapng](logs/log2part1.pcapng)
+
 #### 7. Start new captures in tuxY2.eth0, tuxY3.eth0, tuxY4.eth0
+
 #### 8. In tuxY3, do ping broadcast for a few seconds
 
 - tuxY2/tuxY3/tuxY4:
@@ -160,6 +163,10 @@ ping -b 172.16.20.255
 
 #### 9. Observe the results, stop the captures and save the logs
 
+- [log2part2tux2.pcapng](logs/log2part2tux2.pcapng)
+- [log2part2tux3.pcapng](logs/log2part2tux3.pcapng)
+- [log2part2tux4.pcapng](logs/log2part2tux4.pcapng)
+
 #### 10. Repeat steps 7, 8 and 9, but now ping broadcast in tuxY2 (ping -b 172.16.Y1.255)
 
 - tuxY2/tuxY3/tuxY4:
@@ -170,6 +177,11 @@ ping -b 172.16.20.255
 ``` bash
 ping -b 172.16.21.255
 ```
+
+- Logs:
+    - [log2part3tux2.pcapng](logs/log2part3tux2.pcapng)
+    - [log2part3tux3.pcapng](logs/log2part3tux3.pcapng)
+    - [log2part2tux4.pcapng](logs/log2part3tux4.pcapng)
 
 ### Questions
 
@@ -257,6 +269,8 @@ ping 172.16.21.1
 
 #### 7. Stop the capture and save the logs
 
+- [log3part1.pcapng](logs/log3part1.pcapng)
+
 #### 8. Start capture in tuxY4; use 2 instances of Wireshark, one per network interface
 
 - tuxY4:
@@ -281,6 +295,10 @@ ping 172.16.21.1
 
 #### 11. Stop captures in tuxY4 and save logs
 
+- [log3part2eth0.pcapng](logs/log3part2eth0.pcapng)
+
+- [log3part2eth1.pcapng](logs/log3part2eth1.pcapng)
+
 ### Questions
 
 #### What are the commands required to configure this experience?
@@ -295,7 +313,7 @@ ping 172.16.21.1
 
 #### What are the IP and MAC addresses associated to ICMP packets and why? 
 
-## Experience 3 - Configure a Commercial Router and Implement NAT
+## Experience 4 - Configure a Commercial Router and Implement NAT
 
 ### Steps
 
@@ -341,6 +359,7 @@ route add default gw 172.16.Y1.254
 - Mikrotik Router:
 ```
  /ip route add dst-address=172.16.20.0/24 gateway=172.16.21.253
+ /ip route add dst-address=0.0.0.0/0 gateway=172.16.21.254
 ```
 
 #### 3. Using ping commands and Wireshark, verify if tuxY3 can ping all the network interfaces of tuxY2, tuxY4 and Rc
