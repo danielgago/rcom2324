@@ -51,27 +51,88 @@ int newSocket(char* ip, int port) {
     return sockfd;
 }
 
-int serverResponse(int sockfd) {
-    int responseCode;
-    char responseCodeStr[4];
+int serverResponse(int sockfd, char* response) {
+    memset(response, 0, 500);
+    int responseCode; char responseCodeStr[4]; int pos = 4;
+
     read(sockfd, &responseCodeStr, 3);
+    printf("%s", responseCodeStr);
+    for(int i = 0; i < 4; i++) {
+        if (i < 3)
+            response[i] = responseCodeStr[i];
+        else
+            response[i] = ' ';
+    }
     responseCodeStr[3] = '\0';
     responseCode = atoi(responseCodeStr);
+
+    char byte;
+    ReadServerState state = BEGIN;
+
+    while (state != END) {
+        read(sockfd, &byte, 1);
+        printf("%c", byte);
+        switch (state) {
+            case BEGIN:
+                if (byte == '\n') {
+                    state = END;
+                }
+                else if (byte == '-') {
+                    state = MULTI_LINE;
+                }
+                else if (byte == ' ') {
+                    state = SINGLE_LINE;
+                }
+                else response[pos++] = byte;
+                break;
+            case SINGLE_LINE:
+                if (byte == '\n') {
+                    state = END;
+                }
+                else response[pos++] = byte;
+                break;
+            case MULTI_LINE:
+                if (byte == '\n') {
+                    memset(response, 0, 500);
+                    pos = 0;
+                    state = BEGIN;
+                }
+                else response[pos++] = byte;
+                break;
+            case END:
+                break;
+        }
+    }
     return responseCode;
 }
 
-int authentication(int sockfd) {
-    char userHandler[5+strlen(ftpURL.user)+1]; sprintf(userHandler, "user %s\n", ftpURL.user);
-    char passwordHandler[5+strlen(ftpURL.password)+1]; sprintf(passwordHandler, "pass %s\n", ftpURL.user);
+int authentication(int sockfd, char* user, char* password) {
+    char response[500];
+    char userHandler[5+strlen(user)+1]; sprintf(userHandler, "user %s\n", user);
+    char passwordHandler[5+strlen(password)+1]; sprintf(passwordHandler, "pass %s\n", user);
     
     write(sockfd, userHandler, strlen(userHandler));
-    if (serverResponse(sockfd) != 331) {
-        printf("Unknown user '%s'. Abort.\n", ftpURL.user);
+    if (serverResponse(sockfd, response) != 331) {
+        printf("Unknown user '%s'. Abort.\n", user);
         exit(-1);
     }
 
     write(sockfd, passwordHandler, strlen(passwordHandler));
-    return serverResponse(sockfd);
+    return serverResponse(sockfd, response);
+}
+
+int passiveMode(int sockfd) {
+    char response[500];
+    write(sockfd, "pasv\n", 5);
+    int responseCode = serverResponse(sockfd, response);
+    if (responseCode != 227) {
+        printf("Error entering passive mode. Abort.\n");
+        exit(-1);
+    }
+    printf("Response:\n%s\n", response);
+    int port1, port2;
+    sscanf(response, "227 Entering Passive Mode (%*d,%*d,%*d,%*d,%d,%d)\n", &port1, &port2);
+    return port1*256+port2;
 }
 
 int main(int argc, char **argv) {
@@ -90,19 +151,30 @@ int main(int argc, char **argv) {
 
     char *ip = inet_ntoa(*((struct in_addr *) h->h_addr));
     printf("IP Address : %s\n", ip);
-
+    char response[500];
     int sockfd = newSocket(ip, FTP_SERVER_PORT);
-    if (serverResponse(sockfd) != 220) {
+    if (serverResponse(sockfd, response) != 220) {
         printf("Error connecting to server\n");
         exit(-1);
     }
 
     if(at_symbol) {
-        if (authentication(sockfd) != 230) {
+        if (authentication(sockfd, ftpURL.user, ftpURL.password) != 230) {
             printf("Wrong password. Abort.\n");
             exit(-1);
         }
     }
+    else {
+        if (authentication(sockfd, "anonymous", "anonymous") != 230) {
+            printf("Wrong password. Abort.\n");
+            exit(-1);
+        }
+    }
+
+    int filePort;
+    char fileIP[16];
+
+    filePort = passiveMode(sockfd);
 
 
     char buf[] = "Mensagem de teste na travessia da pilha TCP/IP\n";

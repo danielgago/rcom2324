@@ -15,3 +15,10 @@ struct FTPURL {
     char host[256];
     char urlPath[256];
 };
+
+typedef enum {
+    BEGIN,
+    SINGLE_LINE,
+    MULTI_LINE,
+    END
+} ReadServerState;
