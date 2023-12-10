@@ -1,0 +1,12 @@
+/interface bridge add name=bridgeY0;
+/interface bridge add name=bridgeY1;
+/interface bridge port remove [find interface=ether1];
+/interface bridge port remove [find interface=ether2];
+/interface bridge port remove [find interface=ether4];
+/interface bridge port add bridge=bridgeY0 interface=ether1;
+/interface bridge port add bridge=bridgeY0 interface=ether2;
+/interface bridge port add bridge=bridgeY1 interface=ether4;
+/interface bridge port remove [find interface=ether3];
+/interface bridge port add bridge=bridgeY1 interface=ether3;
+/interface bridge port remove [find interface=ether5];
+/interface bridge port add bridge=bridgeY1 interface=ether5;
