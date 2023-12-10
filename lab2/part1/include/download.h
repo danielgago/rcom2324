@@ -7,8 +7,7 @@
 #include <string.h>
 #include <netdb.h>
 
-#define SERVER_PORT 6000
-#define SERVER_ADDR "192.168.28.96"
+#define FTP_SERVER_PORT 21
 
 struct FTPURL {
     char user[256];
