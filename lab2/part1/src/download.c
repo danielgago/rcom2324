@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
     }
     char *url = argv[1];
     int at_symbol = parseFTPURL(url, &ftpURL);
-    printf("User: %s\nPassword: %s\nHost: %s\nPath to File: %s\n", ftpURL.user, ftpURL.password, ftpURL.host, ftpURL.pathToFile);
+    printf("User: %s\nPassword: %s\nHost: %s\nPath to File: %s\nFilename: %s\n", ftpURL.user, ftpURL.password, ftpURL.host, ftpURL.pathToFile, ftpURL.file);
     struct hostent *h;
     if ((h = gethostbyname(ftpURL.host)) == NULL) {
         herror("gethostbyname()");
@@ -195,6 +195,13 @@ int main(int argc, char **argv) {
         }
     }
 
+    char cwdHandler[5+strlen(ftpURL.pathToFile)+1]; sprintf(cwdHandler, "cwd %s\n", ftpURL.pathToFile);
+    write(sockfd, cwdHandler, strlen(cwdHandler));
+    if (serverResponse(sockfd, response) != 250) {
+        printf("Directory not found. Abort.\n");
+        exit(-1);
+    }
+
     int filePort;
     char fileIP[16];
 
@@ -203,15 +210,22 @@ int main(int argc, char **argv) {
     printf("File port: %d\n", filePort);
 
     int fileSockfd = newSocket(fileIP, filePort);
-    printf("Here\n");
 
     char fileHandler[5+strlen(ftpURL.file)+1]; sprintf(fileHandler, "retr %s\n", ftpURL.file);
-    printf("File handler: %s\n", fileHandler);
     write(fileSockfd, fileHandler, strlen(fileHandler));
     if (serverResponse(fileSockfd, response) != 150) {
         printf("File not found. Abort.\n");
         exit(-1);
     }
+
+    FILE *file = fopen(ftpURL.file, "w");
+    char buffer[500];
+    int bytes;
+    do {
+        bytes = read(fileSockfd, buffer, 500);
+        if (fwrite(buffer, bytes, 1, file) < 0) return -1;
+    } while (bytes);
+    fclose(file);
 
 
     return 0;
