@@ -228,8 +228,8 @@ int main(int argc, char **argv) {
     int fileSockfd = newSocket(fileIP, filePort);
 
     char fileHandler[5+strlen(ftpURL.file)+1]; sprintf(fileHandler, "retr %s\n", ftpURL.file);
-    write(fileSockfd, fileHandler, strlen(fileHandler));
-    if (serverResponse(fileSockfd, response) != 150) {
+    write(sockfd, fileHandler, strlen(fileHandler));
+    if (serverResponse(sockfd, response) != 150) {
         printf("File not found. Abort.\n");
         exit(-1);
     }
