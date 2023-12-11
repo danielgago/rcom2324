@@ -7,5 +7,19 @@
 #include <string.h>
 #include <netdb.h>
 
-#define SERVER_PORT 6000
-#define SERVER_ADDR "192.168.28.96"
+#define FTP_SERVER_PORT 21
+
+struct FTPURL {
+    char user[500];
+    char password[500];
+    char host[500];
+    char pathToFile[500];
+    char file[500];
+};
+
+typedef enum {
+    BEGIN,
+    SINGLE_LINE,
+    MULTI_LINE,
+    END
+} ReadServerState;
