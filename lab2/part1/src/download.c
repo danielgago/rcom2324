@@ -242,8 +242,11 @@ int main(int argc, char **argv) {
         if (fwrite(buffer, bytes, 1, file) < 0) return -1;
     } while (bytes);
     fclose(file);
-
     char answer[500];
+    if(serverResponse(sockfd, answer) != 226) {
+        printf("Error transfering. Abort.\n");
+        exit(-1);
+    }
     write(sockfd, "quit\n", 5);
     if(serverResponse(sockfd, answer) != 221) {
         printf("Error closing connection. Abort.\n");
