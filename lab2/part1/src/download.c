@@ -195,10 +195,26 @@ int main(int argc, char **argv) {
         }
     }
 
-    char cwdHandler[5+strlen(ftpURL.pathToFile)+1]; sprintf(cwdHandler, "cwd %s\n", ftpURL.pathToFile);
-    write(sockfd, cwdHandler, strlen(cwdHandler));
-    if (serverResponse(sockfd, response) != 250) {
-        printf("Directory not found. Abort.\n");
+    if (ftpURL.pathToFile[0] != '\0'){
+        char cwdHandler[5+strlen(ftpURL.pathToFile)+1]; sprintf(cwdHandler, "cwd %s\n", ftpURL.pathToFile);
+        write(sockfd, cwdHandler, strlen(cwdHandler));
+        if (serverResponse(sockfd, response) != 250) {
+            printf("Directory not found. Abort.\n");
+            exit(-1);
+        }
+    }
+
+    char typeHandler[5+strlen(ftpURL.file)+1]; sprintf(typeHandler, "type I\n");
+    write(sockfd, typeHandler, strlen(typeHandler));
+    if (serverResponse(sockfd, response) != 200) {
+        printf("Error setting type to binary. Abort.\n");
+        exit(-1);
+    }
+
+    char sizeHandler[5+strlen(ftpURL.file)+1]; sprintf(sizeHandler, "size %s\n", ftpURL.file);
+    write(sockfd, sizeHandler, strlen(sizeHandler));
+    if (serverResponse(sockfd, response) != 213) {
+        printf("File not found. Abort.\n");
         exit(-1);
     }
 
@@ -227,6 +243,13 @@ int main(int argc, char **argv) {
     } while (bytes);
     fclose(file);
 
+    char answer[500];
+    write(sockfd, "quit\n", 5);
+    if(serverResponse(sockfd, answer) != 221) {
+        printf("Error closing connection. Abort.\n");
+        exit(-1);
+    }
+    close(sockfd); close(fileSockfd);
 
     return 0;
 }
