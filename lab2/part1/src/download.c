@@ -25,8 +25,8 @@ void getFileName(const char *urlPath) {
         ftpURL.pathToFile[lastSlashIndex] = '\0';
         strcpy(ftpURL.file, urlPath + lastSlashIndex + 1);
     } else {
-        strcpy(ftpURL.pathToFile, urlPath);
-        ftpURL.file[0] = '\0'; // No file in the path
+        strcpy(ftpURL.file, urlPath);
+        ftpURL.pathToFile[0] = '\0'; // No file in the path
     }
 }
 
