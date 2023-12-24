@@ -43,11 +43,11 @@ int parseFTPURL(const char *url, struct FTPURL *ftpURL);
 int newSocket(char* ip, int port);
 
 // Function that reads the server response.
-// Returns 1 on success, -1 otherwise.
+// Returns the server response on success, -1 otherwise.
 int serverResponse(int sockfd, char* response);
 
 // Function that authenticates the user.
-// Returns 1 on success, -1 otherwise.
+// Returns the server response of the authentication process on success, -1 otherwise.
 int authentication(int sockfd, char* user, char* password);
 
 // Function that enters passive mode, and gets the IP address and port to download the file.
