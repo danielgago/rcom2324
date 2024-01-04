@@ -9,13 +9,13 @@ Each folder (lab1 and lab2) contains the work related to each of the assignments
 **Description:** This assignment aims to implement a data communication system that allows files to be transmitted via the RS-232 serial port.
 The strategy used for this protocol was Stop-and-Wait, implementing a communication protocol that would allow the file to be sent both in normal situations and in situations of disconnection and noise causing interference in the data sent and received.
 
-**Grade obtained:** ?/20
+**Grade obtained:** 20.0/20
 
 ## Lab 2 - Computer Networks
 
 **Description:** This assignment was divided into two parts. In the first part of the lab assignment, we developed a download application which is capable of downloading files from a specified FTP server. The second part of the lab assignment focuses on configuring and studying a computer network.
 
-**Grade obtained:** ?/20
+**Grade obtained:** 17.0/20
 
 ## Authors
 
