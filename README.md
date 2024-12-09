@@ -1,6 +1,6 @@
 # Computer Networks 23/24
 
-This repository contains the laboratory assignments for the Functional and Logic Programming course at the Faculty of Engineering of the University of Porto (FEUP) in the 2023/24 academic year. 
+This repository contains the laboratory assignments for the Computer Networks unit course at the Faculty of Engineering of the University of Porto (FEUP) in the 2023/24 academic year. 
 
 Each folder (lab1 and lab2) contains the work related to each of the assignments. The examples folder contains some code that was provided to us by our professors to aid in our work.
 
